@@ -1,0 +1,199 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-1.1.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model for authentication and profiles
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String?  // For credentials login
+  name      String?
+  image     String?
+  location  String?
+  bio       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // NextAuth.js required fields
+  accounts Account[]
+  sessions Session[]
+
+  // Our app relationships
+  activities     Activity[]
+  applications   Application[]
+  groupMessages  GroupMessage[]
+  notifications  Notification[]
+
+  @@map("users")
+}
+
+// NextAuth.js required models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// Tag system
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  parentId  String?
+  level     Int      @default(1) // 1=broad, 2=specific, 3=attributes
+  usageCount Int     @default(0) // Track popularity
+  status    TagStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Self-referential relationship for hierarchy
+  parent   Tag?  @relation("TagHierarchy", fields: [parentId], references: [id])
+  children Tag[] @relation("TagHierarchy")
+
+  // Activity relationships
+  activities ActivityTag[]
+
+  @@map("tags")
+}
+
+model ActivityTag {
+  id         String   @id @default(cuid())
+  activityId String
+  tagId      String
+  createdAt  DateTime @default(now())
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  tag      Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([activityId, tagId])
+  @@map("activity_tags")
+}
+
+// Our main models
+model Activity {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  location    String
+  maxMembers  Int?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  creatorId     String
+  creator       User          @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  applications  Application[]
+  groupMessages GroupMessage[]
+  notifications Notification[]
+  tags          ActivityTag[]
+
+  @@map("activities")
+}
+
+model Application {
+  id        String    @id @default(cuid())
+  status    String    @default("pending") // "pending", "accepted", "declined", "removed"
+  message   String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relationships
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activityId    String
+  activity      Activity       @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  notifications Notification[]
+
+  @@unique([userId, activityId])
+  @@map("applications")
+}
+
+model GroupMessage {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  // Relationships
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activityId    String
+  activity      Activity       @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  notifications Notification[]
+
+  @@map("group_messages")
+}
+
+// Notification model
+model Notification {
+  id      String           @id @default(cuid())
+  type    NotificationType
+  title   String
+  message String?
+  isRead  Boolean          @default(false)
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Optional relations to link notifications to specific entities
+  activityId String?
+  activity   Activity? @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  applicationId String?
+  application   Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  messageId    String?
+  groupMessage GroupMessage? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("notifications")
+}
+
+enum NotificationType {
+  NEW_APPLICATION       // Someone applied to your activity
+  APPLICATION_ACCEPTED  // Your application was accepted
+  APPLICATION_DECLINED  // Your application was declined
+  NEW_MESSAGE          // New message in activity you joined
+  ACTIVITY_UPDATE      // Activity you joined was updated
+}
+
+enum TagStatus {
+  ACTIVE
+  MERGED
+  DEPRECATED
+}
