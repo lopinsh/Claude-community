@@ -1,118 +1,148 @@
+// app/api/activities/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+// You MUST ensure this path is correct and this file exports authOptions
+import { authOptions } from '@/lib/auth'; 
 import { prisma } from '@/lib/prisma';
-import { authOptions } from '../auth/[...nextauth]/route';
+import { z } from 'zod'; 
 
-export async function POST(request: NextRequest) {
+// ====================================================================
+// ZOD Schema for POST Request Validation
+// ====================================================================
+const createActivitySchema = z.object({
+  title: z.string().min(3, 'Title must be at least 3 characters.'),
+  description: z.string().optional(),
+  type: z.enum(['Online', 'InPerson', 'Hybrid', 'Other']),
+  location: z.string().min(3, 'Location is required.'),
+  maxMembers: z.number().int().nullable(),
+  tagIds: z.array(z.string()).min(1, 'At least one tag (Level 1) is required.'),
+});
+
+// ====================================================================
+// GET Handler: Fetch and Filter Activities
+// ====================================================================
+export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const { searchParams } = new URL(request.url);
+    const tagId = searchParams.get('tagId');
 
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+    let whereClause: any = { isActive: true };
+
+    // CONDITIONAL FILTERING LOGIC
+    if (tagId) {
+      whereClause.tags = {
+        some: {
+          tagId: tagId,
+        },
+      };
     }
 
-    const { title, description, type, location, maxMembers } = await request.json();
-
-    // Validate input
-    if (!title || !type || !location) {
-      return NextResponse.json(
-        { error: 'Title, type, and location are required' },
-        { status: 400 }
-      );
-    }
-
-    // Get user by email
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    // Create activity
-    const activity = await prisma.activity.create({
-      data: {
-        title,
-        description,
-        type,
-        location,
-        maxMembers,
-        creatorId: user.id,
-      },
-      include: {
+    const activities = await prisma.activity.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        title: true,
+        description: true, // FIXED: Comma added and duplicate removed
+        type: true,
+        location: true,
+        maxMembers: true,
+        createdAt: true,
         creator: {
           select: {
             id: true,
             name: true,
-            email: true,
           },
         },
         _count: {
           select: {
             applications: {
-              where: {
-                status: 'accepted',
-              },
+              where: { status: 'accepted' },
             },
           },
         },
+        tags: { 
+          select: {
+            tag: {
+              select: {
+                id: true,
+                name: true,
+                level: true
+              }
+            }
+          }
+        }
       },
+      orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json({
-      message: 'Activity created successfully',
-      activity,
-    });
+    return NextResponse.json(activities);
   } catch (error) {
-    console.error('Activity creation error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Error fetching activities:', error);
+    
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : 'An unknown server error occurred.';
+      
+    return NextResponse.json({ 
+        error: 'Failed to fetch activities', 
+        details: errorMessage 
+    }, { status: 500 });
   }
 }
 
-export async function GET() {
+
+// ====================================================================
+// POST Handler: Create a New Activity
+// ====================================================================
+export async function POST(request: NextRequest) {
+  // Use getServerSession to get the user session
+  const session = await getServerSession(authOptions);
+
+  if (!session || !session.user) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+  }
+
   try {
-    const activities = await prisma.activity.findMany({
-      where: {
-        isActive: true,
-      },
-      include: {
-        creator: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        _count: {
-          select: {
-            applications: {
-              where: {
-                status: 'accepted',
-              },
+    const body = await request.json();
+    const validatedData = createActivitySchema.parse(body);
+
+    const { tagIds, ...activityData } = validatedData;
+    
+    const newActivity = await prisma.activity.create({
+      data: {
+        ...activityData,
+        creatorId: session.user.id, 
+        tags: {
+          create: tagIds.map(tagId => ({
+            tag: {
+              connect: { id: tagId },
             },
-          },
+          })),
         },
-      },
-      orderBy: {
-        createdAt: 'desc',
       },
     });
 
-    return NextResponse.json({ activities });
+    await prisma.tag.updateMany({
+        where: {
+            id: { in: tagIds }
+        },
+        data: {
+            usageCount: { increment: 1 }
+        }
+    });
+
+    return NextResponse.json(newActivity, { status: 201 });
   } catch (error) {
-    console.error('Activities fetch error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Invalid input data', details: error.errors }, { status: 400 });
+    }
+    
+    console.error('Error creating activity:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred during creation.';
+
+    return NextResponse.json({ 
+        error: 'Activity creation failed', 
+        details: errorMessage 
+    }, { status: 500 });
   }
 }

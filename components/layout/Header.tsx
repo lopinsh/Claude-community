@@ -1,4 +1,3 @@
-'use client'
 // components/layout/Header.tsx
 import { Group, Button, Title, Box } from '@mantine/core'
 import { useSession, signOut } from 'next-auth/react'
@@ -6,48 +5,54 @@ import Link from 'next/link'
 import NotificationBell from '../NotificationBell'
 
 export default function Header() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
 
+  // Use the session status to control what is displayed
+  const isLoading = status === 'loading'
+  
   return (
-    <Box component="header" py="md" px="lg" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
-      <Group justify="space-between">
-        <Group>
-          <Title order={3} style={{ textDecoration: 'none', color: 'inherit' }}>
-            <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
-              Latvian Community
-            </Link>
-          </Title>
-        </Group>
+    <Group justify="space-between" h={60} px="md" style={{ borderBottom: '1px solid var(--mantine-color-gray-2)' }}>
+      <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+        <Title order={2} size="h3">
+          Lopinsh
+        </Title>
+      </Link>
+      
+      <Group>
+        {/* Navigation Links */}
+        <Button component={Link} href="/activities" variant="subtle" size="md">
+          Activities
+        </Button>
+        {session && (
+          <Button component={Link} href="/profile" variant="subtle" size="md">
+            Profile
+          </Button>
+        )}
 
-        <Group>
-          {session?.user ? (
+        {/* Auth Buttons and Bell */}
+        {!isLoading && session ? (
+          <>
+            <Button component={Link} href="/activities/create" variant="filled" size="md">
+              + Create
+            </Button>
+            <NotificationBell />
+            <Button onClick={() => signOut()} variant="outline" size="md">
+              Sign Out
+            </Button>
+          </>
+        ) : (
+          !isLoading && (
             <>
-              <Button variant="subtle" component={Link} href="/activities">
-                Activities
-              </Button>
-              <Button variant="subtle" component={Link} href="/activities/create">
-                Create Activity
-              </Button>
-              <Button variant="subtle" component={Link} href="/profile">
-                Profile
-              </Button>
-              <NotificationBell />
-              <Button variant="light" onClick={() => signOut()}>
-                Sign Out
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button variant="subtle" component={Link} href="/auth/signin">
-                Sign In
-              </Button>
-              <Button component={Link} href="/auth/signup">
+              <Button component={Link} href="/auth/signup" variant="outline" size="md">
                 Sign Up
               </Button>
+              <Button component={Link} href="/auth/signin" variant="filled" size="md">
+                Sign In
+              </Button>
             </>
-          )}
-        </Group>
+          )
+        )}
       </Group>
-    </Box>
+    </Group>
   )
 }

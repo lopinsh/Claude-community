@@ -4,6 +4,7 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
+    container_name: postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: community_platform
@@ -13,17 +14,21 @@ services:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    
+    # CRITICAL FIX: Defines when the DB is ready 
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d community_platform"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   # Next.js Application
   app:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: app
     restart: unless-stopped
     environment:
       - NODE_ENV=development
@@ -33,13 +38,21 @@ services:
       - WATCHPACK_POLLING=true
     ports:
       - "3000:3000"
+      
+    # CRITICAL FIX: Wait for the DB to be ready before starting 'app' 
     depends_on:
       postgres:
         condition: service_healthy
+        
     volumes:
       - .:/app
-      - /app/node_modules
-      - /app/.next
+      - /app/node_modules 
+      - /app/.next        
+      
+    # 🌟 FIX FOR YAML ERROR: Using the explicit list format for the command.
+    # Runs prisma generate (now that the DB is guaranteed to be healthy), then starts Next.js.
+    command: ["/bin/sh", "-c", "npx prisma generate && npm run dev"]
 
 volumes:
   postgres_data:
+    driver: local
