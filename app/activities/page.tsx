@@ -1,123 +1,85 @@
-// app/activities/page.tsx
-"use client"; // MARK AS CLIENT COMPONENT
+'use client';
 
-import { useState, useEffect } from 'react';
-import { Container, Title, Stack, Select, Group, Center, Loader, Alert } from '@mantine/core';
-import Header from '@/components/layout/Header';
-// Assuming you have a component to display the list of activities
-// import ActivityCard from '@/components/activities/ActivityCard'; 
+import { useState, useEffect, useCallback } from 'react';
+import { Activity } from '@prisma/client';
+import { ActivityCard, ActivityWithRelations } from '@/components/activities/ActivityCard';
+import { Title, Text, Container, Grid, Button, Group } from '@mantine/core';
+import { IconPlus } from '@tabler/icons-react';
+import Link from 'next/link';
 
-interface Tag {
-    id: string;
-    name: string;
-    level: number;
-}
-
-interface Activity {
-    id: string;
-    title: string;
-    location: string;
-    // ... other fields needed for your card
+// Define the shape of the data returned from the API
+interface ActivityResponse {
+  activities: ActivityWithRelations[];
 }
 
 export default function ActivitiesPage() {
-    const [activities, setActivities] = useState<Activity[]>([]);
-    const [level1Tags, setLevel1Tags] = useState<Tag[]>([]);
-    const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
+  const [activities, setActivities] = useState<ActivityWithRelations[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-    // --- 1. Fetch Level 1 Tags ---
-    useEffect(() => {
-        const fetchTags = async () => {
-            try {
-                const response = await fetch('/api/tags?level=1');
-                if (response.ok) {
-                    const data = await response.json();
-                    setLevel1Tags(data);
-                }
-            } catch (error) {
-                console.error('Failed to fetch L1 tags for filter:', error);
-            }
-        };
-        fetchTags();
-    }, []);
+  const fetchActivities = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // NOTE: We are NOT fetching tags here yet, so the tagId param is omitted for now.
+      const response = await fetch('/api/activities'); 
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch activities');
+      }
 
-    // --- 2. Fetch Activities based on Filter ---
-    useEffect(() => {
-        const fetchActivities = async () => {
-            setLoading(true);
-            try {
-                // Build the API URL with or without the filter
-                let url = '/api/activities';
-                if (selectedTagId) {
-                    url += `?tagId=${selectedTagId}`;
-                }
-
-                const response = await fetch(url);
-                if (response.ok) {
-                    const data = await response.json();
-                    setActivities(data);
-                } else {
-                    console.error('Failed to fetch activities:', response.status);
-                }
-            } catch (error) {
-                console.error('Network error fetching activities:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchActivities();
-    }, [selectedTagId]); // Rerun whenever the filter changes
-
-    const tagOptions = level1Tags.map(t => ({ value: t.id, label: t.name }));
-
-    if (loading) {
-        return (
-            <Center style={{ height: '100vh' }}>
-                <Loader />
-            </Center>
-        );
+      const data: ActivityResponse = await response.json();
+      setActivities(data.activities);
+    } catch (err: any) {
+      console.error("Fetch activities error:", err);
+      setError(err.message || 'An unknown error occurred while loading activities.');
+    } finally {
+      setLoading(false);
     }
+  }, []);
 
-    return (
-        <Container size="lg" pt="xl">
-            <Header />
-            <Stack gap="lg" mt="lg">
-                <Title order={1}>Discover Activities</Title>
+  useEffect(() => {
+    fetchActivities();
+  }, [fetchActivities]);
 
-                <Group justify="flex-start" align="flex-end">
-                    <Select
-                        label="Filter by Broad Category"
-                        placeholder="All Categories"
-                        data={tagOptions}
-                        value={selectedTagId}
-                        onChange={setSelectedTagId}
-                        allowDeselect
-                        clearable
-                        style={{ minWidth: 250 }}
-                    />
-                </Group>
+  return (
+    <Container size="lg" py="xl">
+      <Group justify="space-between" mb="lg">
+        <Title order={1} className="text-3xl font-extrabold text-gray-900 dark:text-white">
+          Community Activities
+        </Title>
+        <Button
+          component={Link}
+          href="/activities/new"
+          leftSection={<IconPlus size={20} />}
+          size="md"
+          radius="md"
+          className="bg-indigo-600 hover:bg-indigo-700 transition duration-150 ease-in-out"
+        >
+          Create New Activity
+        </Button>
+      </Group>
 
-                {activities.length === 0 && (
-                    <Alert color="blue" title="No Activities Found">
-                        {selectedTagId 
-                            ? "There are no activities matching this filter yet."
-                            : "No activities have been created yet."
-                        }
-                    </Alert>
-                )}
+      {/* Status Messages */}
+      {loading && <Text align="center" className="text-lg text-indigo-600">Loading activities...</Text>}
+      {error && <Text color="red" align="center" className="text-lg font-medium">Error: {error}</Text>}
 
-                <Stack gap="md">
-                    {/* Render your ActivityCard component here for each activity */}
-                    {activities.map(activity => (
-                        <div key={activity.id}>
-                            {/* Replace this with your actual ActivityCard component */}
-                            <Title order={3}>{activity.title}</Title>
-                            <p>{activity.location}</p>
-                        </div>
-                    ))}
-                </Stack>
-            </Stack>
-        </Container>
-    );
+      {/* Activity Grid */}
+      <Grid gutter="xl">
+        {activities.map((activity) => (
+          // We use the new ActivityCard component here
+          <Grid.Col key={activity.id} span={{ base: 12, sm: 6, lg: 4 }}>
+            <ActivityCard activity={activity} />
+          </Grid.Col>
+        ))}
+      </Grid>
+      
+      {!loading && !error && activities.length === 0 && (
+        <Text align="center" className="text-lg text-gray-500 mt-8">
+          No activities found. Be the first to create one!
+        </Text>
+      )}
+    </Container>
+  );
 }

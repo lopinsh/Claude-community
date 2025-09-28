@@ -1,4 +1,5 @@
-FROM node:20-slim
+FROM node:lts-slim 
+# Changed from node:20-slim to pull the latest LTS image
 
 # Install OpenSSL and other required dependencies
 RUN apt-get update && apt-get install -y \

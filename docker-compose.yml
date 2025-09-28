@@ -49,9 +49,12 @@ services:
       - /app/node_modules 
       - /app/.next        
       
-    # 🌟 FIX FOR YAML ERROR: Using the explicit list format for the command.
-    # Runs prisma generate (now that the DB is guaranteed to be healthy), then starts Next.js.
-    command: ["/bin/sh", "-c", "npx prisma generate && npm run dev"]
+    # 🌟 NEW FIX: Runs generate, migrates, SEEDS, then starts Next.js.
+    command: [
+      "/bin/sh", 
+      "-c", 
+      "npx prisma generate && npx prisma migrate deploy --schema prisma/schema.prisma && npm run db:seed && npm run dev"
+      ]
 
 volumes:
   postgres_data:
