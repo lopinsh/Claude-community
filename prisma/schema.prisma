@@ -15,7 +15,7 @@ datasource db {
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
-  password  String?  // For credentials login
+  password  String? // For credentials login
   name      String?
   image     String?
   location  String?
@@ -28,8 +28,10 @@ model User {
   sessions Session[]
 
   // Our app relationships
-  activities     Activity[]
-  applications   Application[]
+  activities     Activity[] // Legacy activities
+  groups         Group[] // New groups (creator relationship)
+  applications   Application[] // Applications to join groups
+  eventAttendees EventAttendee[] // Attendance at specific events
   groupMessages  GroupMessage[]
   notifications  Notification[]
 
@@ -69,14 +71,14 @@ model Session {
 
 // Tag system
 model Tag {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  parentId  String?
-  level     Int      @default(1) // 1=broad, 2=specific, 3=attributes
-  usageCount Int     @default(0) // Track popularity
-  status    TagStatus @default(ACTIVE)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String    @id @default(cuid())
+  name       String    @unique
+  parentId   String?
+  level      Int       @default(1) // 1=broad, 2=specific, 3=attributes
+  usageCount Int       @default(0) // Track popularity
+  status     TagStatus @default(ACTIVE)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   // Self-referential relationship for hierarchy
   parent   Tag?  @relation("TagHierarchy", fields: [parentId], references: [id])
@@ -84,6 +86,7 @@ model Tag {
 
   // Activity relationships
   activities ActivityTag[]
+  groups     GroupTag[]
 
   @@map("tags")
 }
@@ -101,7 +104,121 @@ model ActivityTag {
   @@map("activity_tags")
 }
 
-// Our main models - NO TYPE FIELD
+model GroupTag {
+  id        String   @id @default(cuid())
+  groupId   String
+  tagId     String
+  createdAt DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  tag   Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, tagId])
+  @@map("group_tags")
+}
+
+// Groups - Main organizational units (formerly Activities)
+model Group {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  location    String
+  maxMembers  Int?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Group type determines behavior
+  groupType GroupType @default(SINGLE_EVENT) // SINGLE_EVENT or RECURRING_GROUP
+
+  // Relationships
+  creatorId     String
+  creator       User           @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  events        Event[] // Multiple events can belong to a group
+  applications  Application[] // Users apply to join the group
+  groupMessages GroupMessage[]
+  notifications Notification[]
+  tags          GroupTag[] // Renamed from ActivityTag
+
+  @@map("groups")
+}
+
+// Events - Specific scheduled occurrences within a group
+model Event {
+  id          String  @id @default(cuid())
+  title       String? // Optional - can inherit from group
+  description String? // Optional event-specific description
+
+  // Scheduling
+  startDateTime DateTime
+  endDateTime   DateTime?
+  isAllDay      Boolean   @default(false)
+  timeZone      String    @default("Europe/Riga")
+
+  // Event type and pattern
+  eventType     EventType @default(REGULAR) // REGULAR, SPECIAL, CANCELLED
+  weekDay       Int? // 0=Sunday, 1=Monday, etc. (for weekly patterns)
+
+  // Privacy and access control
+  visibility    EventVisibility @default(PRIVATE) // PRIVATE, PUBLIC
+  requiresApproval Boolean @default(false) // For public events, require approval to attend
+
+  // Override group settings if needed
+  maxMembers Int? // Can limit participants per event
+  location   String? // Can override group location
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  groupId   String
+  group     Group           @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  attendees EventAttendee[] // Who's attending this specific event
+
+  @@map("events")
+}
+
+// Event attendance - tracks who attends specific events
+model EventAttendee {
+  id        String           @id @default(cuid())
+  status    AttendanceStatus @default(GOING) // GOING, NOT_GOING, MAYBE
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  // Relationships
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@map("event_attendees")
+}
+
+// Enums for the new model
+enum GroupType {
+  SINGLE_EVENT // One-time activity (backward compatibility)
+  RECURRING_GROUP // Group with multiple scheduled events
+}
+
+enum EventType {
+  REGULAR // Regular scheduled event (e.g., weekly rehearsal)
+  SPECIAL // Special event (e.g., performance, tournament)
+  CANCELLED // Cancelled event (keeps history)
+}
+
+enum EventVisibility {
+  PRIVATE // Only group members can see and attend
+  PUBLIC  // Anyone can see, may require approval to attend
+}
+
+enum AttendanceStatus {
+  GOING
+  NOT_GOING
+  MAYBE
+}
+
+// Legacy Activity model (keep for migration compatibility)
 model Activity {
   id          String   @id @default(cuid())
   title       String
@@ -112,9 +229,25 @@ model Activity {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // Calendar & Scheduling fields
+  startDateTime DateTime?
+  endDateTime   DateTime?
+  isAllDay      Boolean   @default(false)
+  timeZone      String?
+
+  // Recurrence fields (deprecated)
+  isRecurring    Boolean   @default(false)
+  recurrenceRule String?
+  recurrenceEnd  DateTime?
+
+  // Recurring event relationships (deprecated)
+  parentEventId  String?
+  parentEvent    Activity?  @relation("EventRecurrence", fields: [parentEventId], references: [id])
+  eventInstances Activity[] @relation("EventRecurrence")
+
   // Relationships
   creatorId     String
-  creator       User          @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creator       User           @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   applications  Application[]
   groupMessages GroupMessage[]
   notifications Notification[]
@@ -124,20 +257,29 @@ model Activity {
 }
 
 model Application {
-  id        String    @id @default(cuid())
-  status    String    @default("pending") // "pending", "accepted", "declined", "removed"
+  id        String   @id @default(cuid())
+  status    String   @default("pending") // "pending", "accepted", "declined", "removed"
   message   String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // Relationships
-  userId        String
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  activityId    String
-  activity      Activity       @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  // Relationships - support both legacy activities and new groups
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Legacy activity relationship (optional for backward compatibility)
+  activityId String?
+  activity   Activity? @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  // New group relationship
+  groupId String?
+  group   Group?  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
   notifications Notification[]
 
+  // Ensure one of activity or group is set
   @@unique([userId, activityId])
+  @@unique([userId, groupId])
   @@map("applications")
 }
 
@@ -146,11 +288,18 @@ model GroupMessage {
   content   String
   createdAt DateTime @default(now())
 
-  // Relationships
-  userId        String
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  activityId    String
-  activity      Activity       @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  // Relationships - support both legacy activities and new groups
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Legacy activity relationship (optional)
+  activityId String?
+  activity   Activity? @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  // New group relationship
+  groupId String?
+  group   Group?  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
   notifications Notification[]
 
   @@map("group_messages")
@@ -172,6 +321,9 @@ model Notification {
   activityId String?
   activity   Activity? @relation(fields: [activityId], references: [id], onDelete: Cascade)
 
+  groupId String?
+  group   Group?  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
   applicationId String?
   application   Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
@@ -185,11 +337,11 @@ model Notification {
 }
 
 enum NotificationType {
-  NEW_APPLICATION       // Someone applied to your activity
-  APPLICATION_ACCEPTED  // Your application was accepted
-  APPLICATION_DECLINED  // Your application was declined
-  NEW_MESSAGE          // New message in activity you joined
-  ACTIVITY_UPDATE      // Activity you joined was updated
+  NEW_APPLICATION // Someone applied to your activity
+  APPLICATION_ACCEPTED // Your application was accepted
+  APPLICATION_DECLINED // Your application was declined
+  NEW_MESSAGE // New message in activity you joined
+  ACTIVITY_UPDATE // Activity you joined was updated
 }
 
 enum TagStatus {

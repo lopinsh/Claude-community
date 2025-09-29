@@ -35,7 +35,6 @@ interface UserProfile {
   activities: Array<{
     id: string;
     title: string;
-    type: string;
   }>;
 }
 
@@ -293,34 +292,31 @@ export default function ProfilePage() {
                   </Center>
                 ) : (
                   <Stack gap="md">
-                    {profile.activities.map((activity) => {
-                      const typeConfig = ACTIVITY_TYPES[activity.type] || ACTIVITY_TYPES.other;
-                      return (
-                        <Card key={activity.id} padding="md" radius="md" withBorder>
-                          <Group justify="space-between">
-                            <Group>
-                              <Badge 
-                                color={typeConfig.color} 
-                                leftSection={typeConfig.icon}
-                                variant="light"
-                              >
-                                {typeConfig.label}
-                              </Badge>
-                              <Text fw={500}>{activity.title}</Text>
-                            </Group>
-                            
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              component="a"
-                              href={`/activities/${activity.id}`}
+                    {profile.activities.map((activity) => (
+                      <Card key={activity.id} padding="md" radius="md" withBorder>
+                        <Group justify="space-between">
+                          <Group>
+                            <Badge
+                              color="blue"
+                              leftSection="🎭"
+                              variant="light"
                             >
-                              View
-                            </Button>
+                              Activity
+                            </Badge>
+                            <Text fw={500}>{activity.title}</Text>
                           </Group>
-                        </Card>
-                      );
-                    })}
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            component="a"
+                            href={`/activities/${activity.id}`}
+                          >
+                            View
+                          </Button>
+                        </Group>
+                      </Card>
+                    ))}
                   </Stack>
                 )}
               </Card>

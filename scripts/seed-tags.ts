@@ -40,6 +40,10 @@ async function seedTags() {
     data: { name: 'language-exchange', parentId: learning.id, level: 2 }
   })
 
+  await prisma.tag.create({
+    data: { name: 'book-club', parentId: social.id, level: 2 }
+  })
+
   // Level 3 - Attributes (no parents for now, can be used with any activity)
   await prisma.tag.create({
     data: { name: 'beginner-friendly', level: 3 }

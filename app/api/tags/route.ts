@@ -14,43 +14,34 @@ export async function GET(request: NextRequest) {
     const parentId = searchParams.get('parentId');
 
     let whereClause: any = { status: 'ACTIVE' };
-    
+
     // Case 1: Fetch tags by a specific level (used for L1 tags)
     if (levelParam) {
       const level = parseInt(levelParam);
       if (!isNaN(level) && level >= 1 && level <= 3) {
         whereClause.level = level;
+        whereClause.parentId = null; // Level 1 tags have no parent
       }
-    } 
+    }
     // Case 2: Fetch children of a parent ID (used for L2/L3 dynamic filtering)
     else if (parentId) {
-      // Logic for the many-to-many relationship using the TagRelation join table
-      whereClause.childRelations = {
-        some: {
-          parentId: parentId,
-        },
-      };
+      whereClause.parentId = parentId;
     }
-    
-    // If no specific filter (level or parentId) is applied, it will return all ACTIVE tags, 
-    // but the front-end only requests specific filters.
 
     const tags = await prisma.tag.findMany({
       where: whereClause,
-      select: { 
-        id: true, 
-        name: true, 
-        level: true 
+      select: {
+        id: true,
+        name: true,
+        level: true,
+        parentId: true
       },
       orderBy: { name: 'asc' },
     });
-    
-    // Log the result to your server console to confirm the API is working
-    if (levelParam === '1') {
-      console.log(`[TAG API] Found ${tags.length} Level 1 tags.`);
-    }
 
-    return NextResponse.json(tags);
+    console.log(`[TAG API] Found ${tags.length} tags for level=${levelParam}, parentId=${parentId}`);
+
+    return NextResponse.json({ tags });
   } catch (error) {
     console.error('Error fetching tags:', error);
     

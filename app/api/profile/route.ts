@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 
 // GET user profile
 export async function GET() {
@@ -15,7 +15,7 @@ export async function GET() {
       );
     }
 
-    // Get user profile with activities
+    // Get user profile with groups
     const profile = await prisma.user.findUnique({
       where: { email: session.user.email },
       select: {
@@ -24,11 +24,10 @@ export async function GET() {
         email: true,
         location: true,
         bio: true,
-        activities: {
+        groups: {
           select: {
             id: true,
             title: true,
-            type: true,
           },
           where: {
             isActive: true,
@@ -36,17 +35,16 @@ export async function GET() {
         },
         applications: {
           select: {
-            activity: {
+            group: {
               select: {
                 id: true,
                 title: true,
-                type: true,
               },
             },
           },
           where: {
-            status: 'accepted',
-            activity: {
+            status: 'ACCEPTED',
+            group: {
               isActive: true,
             },
           },
@@ -61,24 +59,12 @@ export async function GET() {
       );
     }
 
-    // Combine created activities and joined activities
-    const allActivities = [
-      ...profile.activities, // Activities user created
-      ...profile.applications.map(app => app.activity), // Activities user joined
-    ];
-
-    // Remove duplicates and sort
-    const uniqueActivities = allActivities.filter((activity, index, self) =>
-      index === self.findIndex(a => a.id === activity.id)
-    );
-
     const profileData = {
       id: profile.id,
       name: profile.name,
       email: profile.email,
       location: profile.location,
       bio: profile.bio,
-      activities: uniqueActivities,
     };
 
     return NextResponse.json({ profile: profileData });
@@ -120,11 +106,10 @@ export async function PUT(request: NextRequest) {
         email: true,
         location: true,
         bio: true,
-        activities: {
+        groups: {
           select: {
             id: true,
             title: true,
-            type: true,
           },
           where: {
             isActive: true,
@@ -132,17 +117,16 @@ export async function PUT(request: NextRequest) {
         },
         applications: {
           select: {
-            activity: {
+            group: {
               select: {
                 id: true,
                 title: true,
-                type: true,
               },
             },
           },
           where: {
-            status: 'accepted',
-            activity: {
+            status: 'ACCEPTED',
+            group: {
               isActive: true,
             },
           },
@@ -150,23 +134,12 @@ export async function PUT(request: NextRequest) {
       },
     });
 
-    // Combine created activities and joined activities
-    const allActivities = [
-      ...updatedProfile.activities,
-      ...updatedProfile.applications.map(app => app.activity),
-    ];
-
-    const uniqueActivities = allActivities.filter((activity, index, self) =>
-      index === self.findIndex(a => a.id === activity.id)
-    );
-
     const profileData = {
       id: updatedProfile.id,
       name: updatedProfile.name,
       email: updatedProfile.email,
       location: updatedProfile.location,
       bio: updatedProfile.bio,
-      activities: uniqueActivities,
     };
 
     return NextResponse.json({
