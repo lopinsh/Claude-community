@@ -1,6 +1,5 @@
-// prisma/schema.prisma
 // This is your Prisma schema file,
-// learn more about it in the docs: https://pris.lyd/prisma-schema
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
   provider      = "prisma-client-js"
@@ -68,38 +67,25 @@ model Session {
   @@map("sessions")
 }
 
-// === TAG MODELS with Many-to-Many Hierarchy ===
-
 // Tag system
 model Tag {
   id        String   @id @default(cuid())
   name      String   @unique
+  parentId  String?
   level     Int      @default(1) // 1=broad, 2=specific, 3=attributes
   usageCount Int     @default(0) // Track popularity
   status    TagStatus @default(ACTIVE)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relationships for the hierarchy join table
-  parentRelations TagRelation[] @relation("ChildTagRelations") // Relations where this tag is the parent
-  childRelations  TagRelation[] @relation("ParentTagRelations") // Relations where this tag is the child
+  // Self-referential relationship for hierarchy
+  parent   Tag?  @relation("TagHierarchy", fields: [parentId], references: [id])
+  children Tag[] @relation("TagHierarchy")
 
   // Activity relationships
   activities ActivityTag[]
 
   @@map("tags")
-}
-
-// Join Table for Tag Hierarchy (Many-to-Many)
-model TagRelation {
-  parentId String
-  parent   Tag    @relation("ChildTagRelations", fields: [parentId], references: [id], onDelete: Cascade)
-
-  childId String
-  child   Tag    @relation("ParentTagRelations", fields: [childId], references: [id], onDelete: Cascade)
-
-  @@id([parentId, childId])
-  @@map("tag_relations")
 }
 
 model ActivityTag {
@@ -115,12 +101,11 @@ model ActivityTag {
   @@map("activity_tags")
 }
 
-// Our main models
+// Our main models - NO TYPE FIELD
 model Activity {
   id          String   @id @default(cuid())
   title       String
   description String?
-  type        ActivityType // Activity type re-added
   location    String
   maxMembers  Int?
   isActive    Boolean  @default(true)
@@ -199,14 +184,7 @@ model Notification {
   @@map("notifications")
 }
 
-enum ActivityType { // ActivityType enum (re-added)
-  Online
-  InPerson
-  Hybrid
-  Other
-}
-
-enum NotificationType { // NotificationType enum (now complete)
+enum NotificationType {
   NEW_APPLICATION       // Someone applied to your activity
   APPLICATION_ACCEPTED  // Your application was accepted
   APPLICATION_DECLINED  // Your application was declined
