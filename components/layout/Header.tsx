@@ -1,82 +1,309 @@
-import { Group, Button, Title, Menu, Burger, Box } from '@mantine/core';
-import { useSession } from 'next-auth/react';
-import { useState } from 'react';
-import { IconMenu2 } from '@tabler/icons-react';
-import Link from 'next/link';
-import NotificationBell from '../NotificationBell';
-import UserAvatar from '../UserAvatar';
+import { useSession } from 'next-auth/react'
+import { usePathname } from 'next/navigation'
+import Link from 'next/link'
+import { useState } from 'react'
+import {
+  Breadcrumbs,
+  Anchor,
+  Burger,
+  Drawer,
+  Box,
+  Group,
+  Stack,
+  ActionIcon,
+  Button,
+  Text,
+  NavLink as MantineNavLink,
+  Menu,
+  useMantineTheme,
+  useMantineColorScheme
+} from '@mantine/core'
+import { IconChevronRight, IconSearch, IconSun, IconMoon, IconShield, IconDashboard, IconTags, IconNews, IconFileText } from '@tabler/icons-react'
+import { useMediaQuery, useDisclosure } from '@mantine/hooks'
+import { useBreadcrumbStore } from '@/hooks/useBreadcrumbs'
+import NotificationBell from '../NotificationBell'
+import UserAvatar from '../UserAvatar'
+import { SearchOverlay } from '../mobile'
+import { getDesktopNavItems } from '@/utils/navigation'
+import { canAccessAdminDashboard } from '@/lib/authorization'
 
-export default function Header() {
-  const { data: session, status } = useSession();
-  const [menuOpened, setMenuOpened] = useState(false);
+interface BreadcrumbItem {
+  title: string
+  href?: string
+}
 
-  const isLoading = status === 'loading';
+interface HeaderProps {
+  onBurgerClick?: () => void;
+}
+
+const NAV_LINKS = getDesktopNavItems()
+
+export default function Header({ onBurgerClick }: HeaderProps = {}) {
+  const theme = useMantineTheme()
+  const { colorScheme, toggleColorScheme } = useMantineColorScheme()
+  const { data: session, status } = useSession()
+  const pathname = usePathname()
+  const { customBreadcrumbs } = useBreadcrumbStore()
+  const isMobile = useMediaQuery('(max-width: 768px)')
+  const [opened, { toggle, close }] = useDisclosure(false)
+  const [searchOpened, setSearchOpened] = useState(false)
+
+  const isLoading = status === 'loading'
+
+  const getBreadcrumbs = (): BreadcrumbItem[] => {
+    if (customBreadcrumbs) {
+      return customBreadcrumbs
+    }
+
+    if (!pathname || pathname === '/') {
+      return [{ title: 'Discover', href: '/' }]
+    }
+
+    const segments = pathname.split('/').filter(Boolean)
+    const breadcrumbs: BreadcrumbItem[] = [{ title: 'Home', href: '/' }]
+
+    let currentPath = ''
+    segments.forEach((segment, index) => {
+      currentPath += `/${segment}`
+
+      if (segment === 'groups') {
+        breadcrumbs.push({ title: 'Groups', href: '/groups' })
+      } else if (segment === 'create') {
+        breadcrumbs.push({ title: 'Create' })
+      } else if (segment === 'profile') {
+        breadcrumbs.push({ title: 'Profile' })
+      } else if (segment === 'events') {
+        breadcrumbs.push({ title: 'Events', href: currentPath })
+      } else if (segments[index - 1] === 'groups' && segment !== 'create') {
+        breadcrumbs.push({ title: 'Group Details' })
+      }
+    })
+
+    return breadcrumbs
+  }
+
+  const breadcrumbs = getBreadcrumbs()
+
+  // Hide breadcrumbs on Discover/dashboard page
+  const showBreadcrumbs = pathname !== '/' && breadcrumbs.length > 0
 
   return (
-    <Group justify="space-between" h={60} px="md" style={{ borderBottom: '1px solid var(--mantine-color-gray-2)' }}>
-      {/* Left: Logo */}
-      <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
-        <Title order={2} size="h3" c="blue">
-          Lopinsh
-        </Title>
-      </Link>
+    <>
+      {/* Mobile Navigation Drawer */}
+      <Drawer opened={opened} onClose={close} title="Navigation" position="left" size="xs">
+        <Stack gap="xs">
+          {NAV_LINKS.map((link) => {
+            const Icon = link.icon
+            const isActive = pathname === link.href
 
-      {/* Center: Navigation */}
-      <Group gap="md">
-        {/* Calendar moved to main page */}
-      </Group>
+            return (
+              <MantineNavLink
+                key={link.href}
+                component={Link}
+                href={link.href}
+                label={link.label}
+                leftSection={<Icon size={20} />}
+                active={isActive}
+                onClick={close}
+              />
+            )
+          })}
+        </Stack>
+      </Drawer>
 
-      {/* Right: User Actions */}
-      <Group gap="md">
-        {!isLoading && session ? (
-          <>
-            {/* Notification Bell */}
-            <NotificationBell />
+      {/* Header Container */}
+      <Box pos="sticky" top={0} style={{ zIndex: 50 }}>
+        {/* Main Header */}
+        <Box
+          h={64}
+          px="xl"
+          bg={colorScheme === 'dark' ? 'dark.7' : 'white'}
+          style={{
+            borderBottom: `1px solid ${colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors.gray[2]}`,
+          }}
+        >
+          <Group h="100%" justify="space-between">
+            {/* Left: Logo + Mobile Burger + Nav Links */}
+            <Group gap="lg">
+              {isMobile && <Burger opened={onBurgerClick ? false : opened} onClick={onBurgerClick || toggle} size="sm" />}
 
-            {/* User Avatar with Menu */}
-            <UserAvatar />
-          </>
-        ) : (
-          !isLoading && (
-            <>
-              <Button component={Link} href="/auth/signin" variant="subtle" size="sm">
-                Log in
-              </Button>
-              <Button component={Link} href="/auth/signup" variant="filled" size="sm">
-                Sign up
-              </Button>
-            </>
-          )
+              {/* Logo */}
+              <Link href="/" style={{ textDecoration: 'none' }}>
+                <Text
+                  size="xl"
+                  fw={800}
+                  style={{
+                    background: theme.other.brandGradient,
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                  }}
+                >
+                  Ejam Kopā!
+                </Text>
+              </Link>
+
+              {/* Desktop Navigation Links */}
+              {!isMobile && (
+                <Group gap="xs">
+                  {NAV_LINKS.map((link) => {
+                    const isActive = pathname === link.href
+                    return (
+                      <Button
+                        key={link.href}
+                        component={Link}
+                        href={link.href}
+                        variant={isActive ? 'light' : 'subtle'}
+                        color={isActive ? 'categoryBlue' : 'gray'}
+                        size="sm"
+                      >
+                        {link.label}
+                      </Button>
+                    )
+                  })}
+                </Group>
+              )}
+            </Group>
+
+            {/* Right: Search + Theme Toggle + Admin + Notifications + User */}
+            <Group gap="sm">
+              {/* Search Icon - Opens SearchOverlay (Desktop only) */}
+              {!isMobile && (
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  size="lg"
+                  onClick={() => setSearchOpened(true)}
+                >
+                  <IconSearch size={20} />
+                </ActionIcon>
+              )}
+
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="lg"
+                onClick={toggleColorScheme}
+              >
+                {colorScheme === 'dark' ? <IconSun size={20} /> : <IconMoon size={20} />}
+              </ActionIcon>
+
+              {!isLoading && session ? (
+                <>
+                  {/* Admin Menu */}
+                  {canAccessAdminDashboard(session) && (
+                    <Menu shadow="md" width={200}>
+                      <Menu.Target>
+                        <ActionIcon
+                          variant="light"
+                          color="categoryRed"
+                          size="lg"
+                        >
+                          <IconShield size={20} />
+                        </ActionIcon>
+                      </Menu.Target>
+
+                      <Menu.Dropdown>
+                        <Menu.Label>Administration</Menu.Label>
+                        <Menu.Item
+                          component={Link}
+                          href="/admin"
+                          leftSection={<IconDashboard size={16} />}
+                        >
+                          Dashboard
+                        </Menu.Item>
+                        <Menu.Divider />
+                        <Menu.Item
+                          component={Link}
+                          href="/admin/tag-suggestions"
+                          leftSection={<IconTags size={16} />}
+                        >
+                          Tag Suggestions
+                        </Menu.Item>
+                        <Menu.Item
+                          component={Link}
+                          href="/admin/news"
+                          leftSection={<IconNews size={16} />}
+                        >
+                          News
+                        </Menu.Item>
+                        <Menu.Item
+                          component={Link}
+                          href="/admin/pages"
+                          leftSection={<IconFileText size={16} />}
+                        >
+                          Pages
+                        </Menu.Item>
+                      </Menu.Dropdown>
+                    </Menu>
+                  )}
+
+                  <NotificationBell />
+                  <UserAvatar />
+                </>
+              ) : (
+                !isLoading && !isMobile && (
+                  <Group gap="xs">
+                    <Button
+                      variant="subtle"
+                      color="gray"
+                      size="sm"
+                      component="a"
+                      href="/auth/signin"
+                    >
+                      Log in
+                    </Button>
+                    <Button
+                      variant="gradient"
+                      gradient={{ from: 'categoryBlue', to: 'categoryTeal', deg: 135 }}
+                      size="sm"
+                      component="a"
+                      href="/auth/signup"
+                    >
+                      Sign up
+                    </Button>
+                  </Group>
+                )
+              )}
+            </Group>
+          </Group>
+        </Box>
+
+        {/* Breadcrumb Sub-header */}
+        {showBreadcrumbs && (
+          <Box
+            px="xl"
+            py="xs"
+            bg={colorScheme === 'dark' ? 'dark.6' : 'gray.0'}
+            style={{
+              borderBottom: `1px solid ${colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors.gray[2]}`,
+            }}
+          >
+            <Breadcrumbs separator={<IconChevronRight size={14} />}>
+              {breadcrumbs.map((crumb, index) => {
+                return crumb.href ? (
+                  <Anchor
+                    key={index}
+                    component={Link}
+                    href={crumb.href}
+                    size="sm"
+                    c="categoryBlue"
+                  >
+                    {crumb.title}
+                  </Anchor>
+                ) : (
+                  <Text key={index} size="sm" fw={600}>
+                    {crumb.title}
+                  </Text>
+                )
+              })}
+            </Breadcrumbs>
+          </Box>
         )}
+      </Box>
 
-        {/* Burger Menu for Mobile */}
-        <Menu opened={menuOpened} onChange={setMenuOpened} position="bottom-end" width={200}>
-          <Menu.Target>
-            <Button variant="subtle" size="sm" p={4}>
-              <IconMenu2 size={18} />
-            </Button>
-          </Menu.Target>
-
-          <Menu.Dropdown>
-            {session ? (
-              <>
-                <Menu.Item component={Link} href="/profile">
-                  Profile
-                </Menu.Item>
-              </>
-            ) : (
-              <>
-                <Menu.Item component={Link} href="/auth/signin">
-                  Sign In
-                </Menu.Item>
-                <Menu.Item component={Link} href="/auth/signup">
-                  Sign Up
-                </Menu.Item>
-              </>
-            )}
-          </Menu.Dropdown>
-        </Menu>
-      </Group>
-    </Group>
-  );
+      {/* Search Overlay */}
+      <SearchOverlay opened={searchOpened} onClose={() => setSearchOpened(false)} />
+    </>
+  )
 }

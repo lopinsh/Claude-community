@@ -1,5 +1,5 @@
 import { Avatar, Menu, Button, Group, Text, Divider } from '@mantine/core';
-import { IconLogout, IconUser, IconPlus } from '@tabler/icons-react';
+import { IconLogout, IconUser } from '@tabler/icons-react';
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 
@@ -51,14 +51,6 @@ export default function UserAvatar({ size = 32 }: UserAvatarProps) {
         </Menu.Label>
 
         <Divider />
-
-        <Menu.Item
-          leftSection={<IconPlus size={16} />}
-          component={Link}
-          href="/activities/create"
-        >
-          Create Activity
-        </Menu.Item>
 
         <Menu.Item
           leftSection={<IconUser size={16} />}

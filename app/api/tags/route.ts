@@ -12,15 +12,19 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const levelParam = searchParams.get('level');
     const parentId = searchParams.get('parentId');
+    const includeCount = searchParams.get('includeCount') === 'true';
 
     let whereClause: any = { status: 'ACTIVE' };
 
-    // Case 1: Fetch tags by a specific level (used for L1 tags)
+    // Case 1: Fetch tags by a specific level
     if (levelParam) {
       const level = parseInt(levelParam);
       if (!isNaN(level) && level >= 1 && level <= 3) {
         whereClause.level = level;
-        whereClause.parentId = null; // Level 1 tags have no parent
+        // Only add parentId = null for level 1 tags
+        if (level === 1) {
+          whereClause.parentId = null;
+        }
       }
     }
     // Case 2: Fetch children of a parent ID (used for L2/L3 dynamic filtering)
@@ -34,12 +38,19 @@ export async function GET(request: NextRequest) {
         id: true,
         name: true,
         level: true,
-        parentId: true
+        parentId: true,
+        ...(includeCount && {
+          _count: {
+            select: {
+              groups: true
+            }
+          }
+        })
       },
       orderBy: { name: 'asc' },
     });
 
-    console.log(`[TAG API] Found ${tags.length} tags for level=${levelParam}, parentId=${parentId}`);
+    console.log(`[TAG API] Found ${tags.length} tags for level=${levelParam}, parentId=${parentId}, includeCount=${includeCount}`);
 
     return NextResponse.json({ tags });
   } catch (error) {

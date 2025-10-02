@@ -52,9 +52,9 @@ services:
       
     # 🌟 NEW FIX: Runs generate, migrates, SEEDS, then starts Next.js.
     command: [
-      "/bin/sh", 
-      "-c", 
-      "npx prisma generate && npx prisma migrate deploy --schema prisma/schema.prisma && npm run db:seed && npm run dev"
+      "/bin/sh",
+      "-c",
+      "npx prisma generate && npx prisma migrate deploy --schema prisma/schema.prisma && npm run dev"
       ]
 
 volumes:

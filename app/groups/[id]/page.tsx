@@ -17,7 +17,10 @@ import {
   Card,
   Center,
   Loader,
-  Alert
+  Alert,
+  Box,
+  useMantineTheme,
+  useMantineColorScheme
 } from '@mantine/core'
 import {
   IconUsers,
@@ -30,9 +33,11 @@ import {
 } from '@tabler/icons-react'
 import { useSession } from 'next-auth/react'
 import Header from '@/components/layout/Header'
+import GroupDetailSidebar from '@/components/sidebars/GroupDetailSidebar'
 import CreateEventModal from '@/components/events/CreateEventModal'
-import EventCalendar from '@/components/events/EventCalendar'
+// import EventCalendar from '@/components/events/EventCalendar' // TODO: Install react-lightweight-calendar
 import EventDetailModal from '@/components/events/EventDetailModal'
+import { useBreadcrumbs } from '@/hooks/useBreadcrumbs'
 
 interface Group {
   id: string
@@ -69,6 +74,8 @@ interface Group {
 
 export default function GroupDetailPage() {
   const params = useParams()
+  const theme = useMantineTheme()
+  const { colorScheme } = useMantineColorScheme()
   const { data: session } = useSession()
   const [group, setGroup] = useState<Group | null>(null)
   const [loading, setLoading] = useState(true)
@@ -77,6 +84,8 @@ export default function GroupDetailPage() {
   const [eventViewMode, setEventViewMode] = useState<'list' | 'calendar'>('list')
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
   const [eventDetailModalOpened, setEventDetailModalOpened] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const setBreadcrumbs = useBreadcrumbs()
 
   const fetchGroup = async () => {
     try {
@@ -100,6 +109,22 @@ export default function GroupDetailPage() {
     }
   }, [params.id])
 
+  // Update breadcrumbs when group data is loaded
+  useEffect(() => {
+    if (group) {
+      setBreadcrumbs([
+        { title: 'Home', href: '/' },
+        { title: 'Groups', href: '/' },
+        { title: group.title }
+      ])
+    }
+
+    // Cleanup breadcrumbs when component unmounts
+    return () => {
+      setBreadcrumbs(null)
+    }
+  }, [group, setBreadcrumbs])
+
   const handleEventCreated = () => {
     fetchGroup()
   }
@@ -119,31 +144,35 @@ export default function GroupDetailPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: 'var(--mantine-color-gray-0)' }}>
+      <Box mih="100vh" bg={colorScheme === 'dark' ? 'dark.7' : 'gray.0'}>
         <Header />
-        <Container size="lg" py="xl">
-          <Center>
-            <Stack align="center">
-              <Loader size="lg" />
-              <Text>Loading group...</Text>
-            </Stack>
-          </Center>
-        </Container>
-      </div>
+        <Box style={{ display: 'flex' }}>
+          <Container size="lg" py="xl" style={{ flex: 1 }}>
+            <Center>
+              <Stack align="center">
+                <Loader size="lg" />
+                <Text>Loading group...</Text>
+              </Stack>
+            </Center>
+          </Container>
+        </Box>
+      </Box>
     )
   }
 
   if (error || !group) {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: 'var(--mantine-color-gray-0)' }}>
+      <Box mih="100vh" bg={colorScheme === 'dark' ? 'dark.7' : 'gray.0'}>
         <Header />
-        <Container size="lg" py="xl">
-          <Alert icon={<IconAlertCircle size={16} />} color="red">
-            <Title order={4}>Group not found</Title>
-            <Text>The group you're looking for doesn't exist or has been removed.</Text>
-          </Alert>
-        </Container>
-      </div>
+        <Box style={{ display: 'flex' }}>
+          <Container size="lg" py="xl" style={{ flex: 1 }}>
+            <Alert icon={<IconAlertCircle size={16} />} color="red">
+              <Title order={4}>Group not found</Title>
+              <Text>The group you're looking for doesn't exist or has been removed.</Text>
+            </Alert>
+          </Container>
+        </Box>
+      </Box>
     )
   }
 
@@ -157,16 +186,24 @@ export default function GroupDetailPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--mantine-color-gray-0)' }}>
+    <Box mih="100vh" bg={colorScheme === 'dark' ? 'dark.7' : 'gray.0'}>
       <Header />
 
-      <Container size="lg" py="xl">
+      <Box style={{ display: 'flex' }}>
+        <GroupDetailSidebar
+          group={group}
+          currentUserId={session?.user?.id}
+          isCollapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
+
+        <Container size="lg" py="xl" style={{ flex: 1 }}>
         <Stack gap="lg">
           {/* Group Header */}
           <Paper p="xl" withBorder>
             <Stack gap="md">
               <Group justify="space-between" align="flex-start">
-                <Stack gap="xs" style={{ flex: 1 }}>
+                <Stack gap="xs" flex={1}>
                   <Group gap="sm">
                     <Title order={1} size="h2">{group.title}</Title>
                     <Badge variant="light" color="blue">
@@ -314,9 +351,9 @@ export default function GroupDetailPage() {
                   {eventViewMode === 'list' ? (
                     <Stack gap="sm">
                       {group.events.map((event) => (
-                        <Card key={event.id} withBorder p="md" style={{ cursor: 'pointer' }} onClick={() => handleEventClick(event.id)}>
+                        <Card key={event.id} withBorder p="md" style={{ cursor: 'pointer', transition: theme.other.transition }} onClick={() => handleEventClick(event.id)}>
                           <Group justify="space-between" align="flex-start">
-                            <Stack gap="xs" style={{ flex: 1 }}>
+                            <Stack gap="xs" flex={1}>
                               <Group gap="sm">
                                 <Text fw={500}>
                                   {event.title || `${group.title} Event`}
@@ -351,20 +388,16 @@ export default function GroupDetailPage() {
                       ))}
                     </Stack>
                   ) : (
-                    <EventCalendar
-                      events={group.events.map(event => ({
-                        ...event,
-                        group: {
-                          id: group.id,
-                          title: group.title,
-                          location: group.location,
-                          creator: group.creator,
-                        },
-                        _count: { attendees: 0 }, // We'll need to fetch this if needed
-                      }))}
-                      onSelectEvent={(event) => handleEventClick(event.id)}
-                      height={500}
-                    />
+                    <Card p="xl" radius="md" withBorder>
+                      <Stack align="center" gap="md">
+                        <Text size="lg" fw={500} c="dimmed">
+                          Calendar view temporarily disabled
+                        </Text>
+                        <Text size="sm" c="dimmed" ta="center">
+                          Please use list view for now
+                        </Text>
+                      </Stack>
+                    </Card>
                   )}
                 </>
               )}
@@ -403,7 +436,8 @@ export default function GroupDetailPage() {
             onEventDeleted={handleEventDeleted}
           />
         </Stack>
-      </Container>
-    </div>
+        </Container>
+      </Box>
+    </Box>
   )
 }

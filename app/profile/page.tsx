@@ -25,6 +25,7 @@ import {
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import Header from '@/components/layout/Header';
+import ProfileSidebar from '@/components/sidebars/ProfileSidebar';
 
 interface UserProfile {
   id: string;
@@ -68,6 +69,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const form = useForm({
     initialValues: {
@@ -151,42 +153,60 @@ export default function ProfilePage() {
 
   if (loading || status === 'loading') {
     return (
-      <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)' }}>
+      <div style={{ minHeight: '100vh', backgroundColor: '#fafafa' }}>
         <Header />
-        <Center style={{ minHeight: '50vh' }}>
-          <Stack align="center">
-            <Loader size="lg" />
-            <Text c="dimmed">Loading profile...</Text>
-          </Stack>
-        </Center>
+        <div style={{ display: 'flex' }}>
+          <ProfileSidebar
+            isCollapsed={sidebarCollapsed}
+            onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          />
+          <Center style={{ flex: 1, minHeight: '50vh' }}>
+            <Stack align="center">
+              <Loader size="lg" />
+              <Text c="dimmed">Loading profile...</Text>
+            </Stack>
+          </Center>
+        </div>
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)' }}>
+      <div style={{ minHeight: '100vh', backgroundColor: '#fafafa' }}>
         <Header />
-        <Container size="md" py="xl">
-          <Card shadow="lg" radius="lg" p="xl">
-            <Center>
-              <Stack align="center">
-                <Text size="4rem">😕</Text>
-                <Title order={2}>Profile Not Found</Title>
-                <Text c="dimmed">Unable to load your profile</Text>
-              </Stack>
-            </Center>
-          </Card>
-        </Container>
+        <div style={{ display: 'flex' }}>
+          <ProfileSidebar
+            isCollapsed={sidebarCollapsed}
+            onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          />
+          <Container size="md" py="xl" style={{ flex: 1 }}>
+            <Card shadow="lg" radius="lg" p="xl">
+              <Center>
+                <Stack align="center">
+                  <Text size="4rem">😕</Text>
+                  <Title order={2}>Profile Not Found</Title>
+                  <Text c="dimmed">Unable to load your profile</Text>
+                </Stack>
+              </Center>
+            </Card>
+          </Container>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#fafafa' }}>
       <Header />
 
-      <Container size="lg" py="xl">
+      <div style={{ display: 'flex' }}>
+        <ProfileSidebar
+          isCollapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
+
+        <Container size="lg" py="xl" style={{ flex: 1 }}>
         <Grid>
           {/* Profile Info Card */}
           <Grid.Col span={{ base: 12, md: 4 }}>
@@ -323,7 +343,8 @@ export default function ProfilePage() {
             </Stack>
           </Grid.Col>
         </Grid>
-      </Container>
+        </Container>
+      </div>
     </div>
   );
 }

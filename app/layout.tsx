@@ -5,6 +5,9 @@ import { Notifications } from '@mantine/notifications';
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import { SessionProvider } from '@/components/SessionProvider';
+import { theme } from '@/theme';
+import { MobileLayout } from '@/components/mobile';
+import Footer from '@/components/layout/Footer';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -21,13 +24,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <ColorSchemeScript />
+        <ColorSchemeScript defaultColorScheme="auto" />
       </head>
       <body className={inter.className}>
-        <MantineProvider>
+        <MantineProvider theme={theme} defaultColorScheme="auto">
           <Notifications />
           <SessionProvider>
-            {children}
+            <MobileLayout>
+              {children}
+              <Footer />
+            </MobileLayout>
           </SessionProvider>
         </MantineProvider>
       </body>

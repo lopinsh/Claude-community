@@ -19,6 +19,8 @@ import {
   ThemeIcon,
   Loader,
   ActionIcon,
+  useMantineTheme,
+  useMantineColorScheme,
 } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
@@ -32,6 +34,7 @@ import {
   IconInfoCircle,
 } from '@tabler/icons-react'
 import { useRouter } from 'next/navigation'
+import { useMediaQuery } from '@mantine/hooks'
 
 const LATVIAN_CITIES = [
   { value: 'riga', label: 'Rīga' },
@@ -57,10 +60,14 @@ interface Tag {
 interface CreateGroupModalProps {
   opened: boolean
   onClose: () => void
+  prefilledTagIds?: string[]
 }
 
-export default function CreateGroupModal({ opened, onClose }: CreateGroupModalProps) {
+export default function CreateGroupModal({ opened, onClose, prefilledTagIds = [] }: CreateGroupModalProps) {
   const router = useRouter()
+  const theme = useMantineTheme()
+  const { colorScheme } = useMantineColorScheme()
+  const isMobile = useMediaQuery('(max-width: 768px)')
   const [activeStep, setActiveStep] = useState(0)
   const [loading, setLoading] = useState(false)
 
@@ -123,6 +130,21 @@ export default function CreateGroupModal({ opened, onClose }: CreateGroupModalPr
     }
   }, [opened])
 
+  // Pre-fill tags when provided from Interests page
+  useEffect(() => {
+    if (prefilledTagIds.length > 0 && opened) {
+      // Separate tags by level (would need to fetch tag details to know levels)
+      // For now, we'll just set them all - the API will handle categorization
+      const level1 = prefilledTagIds.filter(id => level1Tags.some(t => t.value === id))
+      const level2 = prefilledTagIds.filter(id => level2Tags.some(t => t.value === id))
+      const level3 = prefilledTagIds.filter(id => level3Tags.some(t => t.value === id))
+
+      if (level1.length > 0) form.setFieldValue('level1TagIds', level1)
+      if (level2.length > 0) form.setFieldValue('level2TagIds', level2)
+      if (level3.length > 0) form.setFieldValue('level3TagIds', level3)
+    }
+  }, [prefilledTagIds, opened, level1Tags, level2Tags, level3Tags])
+
   // Handle custom tag creation
   const handleCreateCustomTag = (level: number, query: string) => {
     if (!query.trim()) return
@@ -150,12 +172,12 @@ export default function CreateGroupModal({ opened, onClose }: CreateGroupModalPr
   const handleSubmit = async (values: typeof form.values) => {
     setLoading(true)
     try {
-      // Combine all selected tags
+      // Combine all selected tags, filtering out custom tags that don't exist in DB yet
       const allTagIds = [
         ...values.level1TagIds,
         ...values.level2TagIds,
         ...values.level3TagIds
-      ].filter(Boolean)
+      ].filter(Boolean).filter(id => !id.startsWith('custom_'))
 
       const groupResponse = await fetch('/api/groups', {
         method: 'POST',
@@ -214,13 +236,21 @@ export default function CreateGroupModal({ opened, onClose }: CreateGroupModalPr
       onClose={handleClose}
       title="Create New Group"
       size="lg"
-      centered
+      centered={!isMobile}
+      fullScreen={isMobile}
+      styles={{
+        body: {
+          padding: isMobile ? theme.spacing.md : undefined,
+        },
+      }}
     >
       <Stack gap="lg">
         <Stepper
           active={activeStep}
           allowNextStepsSelect={true}
           onStepClick={setActiveStep}
+          orientation={isMobile ? 'vertical' : 'horizontal'}
+          iconSize={isMobile ? 32 : 42}
         >
           {/* Step 1: Basic Information */}
           <Stepper.Step
@@ -441,29 +471,124 @@ export default function CreateGroupModal({ opened, onClose }: CreateGroupModalPr
           </Stepper.Step>
         </Stepper>
 
-        {/* Navigation Buttons */}
-        <Group justify="space-between" mt="xl">
-          <Button
-            variant="subtle"
+        {/* Premium Navigation Buttons */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginTop: isMobile ? '16px' : '32px',
+          paddingTop: isMobile ? '16px' : '24px',
+          borderTop: '1px solid #f1f5f9',
+          gap: isMobile ? '12px' : '0'
+        }}>
+          <button
+            style={{
+              all: 'unset',
+              cursor: 'pointer',
+              padding: isMobile ? '14px 24px' : '12px 24px',
+              minHeight: isMobile ? '44px' : 'auto',
+              borderRadius: '12px',
+              fontWeight: 500,
+              fontSize: '14px',
+              color: '#64748b',
+              transition: 'all 0.2s ease',
+              backgroundColor: 'transparent'
+            }}
             onClick={activeStep > 0 ? prevStep : handleClose}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#f8fafc';
+              e.currentTarget.style.color = '#0f172a';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = '#64748b';
+            }}
           >
             {activeStep > 0 ? 'Back' : 'Cancel'}
-          </Button>
+          </button>
 
           {activeStep < 2 ? (
-            <Button onClick={nextStep}>
-              Next
-            </Button>
-          ) : (
-            <Button
-              onClick={() => form.onSubmit(handleSubmit)()}
-              loading={loading}
-              leftSection={<IconCheck size={16} />}
+            <button
+              style={{
+                all: 'unset',
+                cursor: 'pointer',
+                padding: isMobile ? '14px 32px' : '12px 32px',
+                minHeight: isMobile ? '44px' : 'auto',
+                borderRadius: '12px',
+                fontWeight: 600,
+                fontSize: '14px',
+                color: '#ffffff',
+                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 2px 8px rgba(99, 102, 241, 0.25)'
+              }}
+              onClick={nextStep}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = '0 4px 16px rgba(99, 102, 241, 0.35)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(99, 102, 241, 0.25)';
+              }}
             >
-              Create Group
-            </Button>
+              Next
+            </button>
+          ) : (
+            <button
+              style={{
+                all: 'unset',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                padding: isMobile ? '14px 32px' : '12px 32px',
+                minHeight: isMobile ? '44px' : 'auto',
+                borderRadius: '12px',
+                fontWeight: 600,
+                fontSize: '14px',
+                color: '#ffffff',
+                background: loading ? '#94a3b8' : 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                transition: 'all 0.2s ease',
+                boxShadow: loading ? 'none' : '0 2px 8px rgba(34, 197, 94, 0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                opacity: loading ? 0.7 : 1
+              }}
+              onClick={() => form.onSubmit(handleSubmit)()}
+              disabled={loading}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = '0 4px 16px rgba(34, 197, 94, 0.35)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(34, 197, 94, 0.25)';
+                }
+              }}
+            >
+              {loading ? (
+                <>
+                  <div style={{
+                    width: '16px',
+                    height: '16px',
+                    border: '2px solid #ffffff',
+                    borderTop: '2px solid transparent',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }} />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <IconCheck size={16} />
+                  Create Group
+                </>
+              )}
+            </button>
           )}
-        </Group>
+        </div>
       </Stack>
     </Modal>
   )

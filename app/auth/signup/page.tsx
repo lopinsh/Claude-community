@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  Container,
   Title,
   Text,
   Button,
@@ -13,14 +12,21 @@ import {
   TextInput,
   PasswordInput,
   Center,
-  Anchor
+  Anchor,
+  Box,
+  useMantineTheme,
+  useMantineColorScheme
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
+import { useMediaQuery } from '@mantine/hooks';
 
 export default function SignupPage() {
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const theme = useMantineTheme();
+  const { colorScheme } = useMantineColorScheme();
 
   const form = useForm({
     initialValues: {
@@ -53,7 +59,7 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/register', {
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -93,80 +99,111 @@ export default function SignupPage() {
   };
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      background: 'linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }}>
-      <Container size="xs" py="xl">
-        <Card shadow="lg" radius="lg" p="xl">
-          <Center mb="xl">
-            <Stack align="center" gap="sm">
-              <Title order={1}>Join Our Community</Title>
-              <Text c="dimmed" ta="center">
-                Create your account to connect with local activities
-              </Text>
-            </Stack>
-          </Center>
-          
-          <form onSubmit={form.onSubmit(handleSubmit)}>
-            <Stack gap="md">
-              <TextInput
-                label="Full Name"
-                placeholder="Your full name"
-                size="md"
-                {...form.getInputProps('name')}
-                required
-              />
-              
-              <TextInput
-                label="Email Address"
-                placeholder="your@email.com"
-                size="md"
-                {...form.getInputProps('email')}
-                required
-              />
-              
-              <PasswordInput
-                label="Password"
-                placeholder="Choose a secure password"
-                size="md"
-                {...form.getInputProps('password')}
-                required
-              />
-              
-              <PasswordInput
-                label="Confirm Password"
-                placeholder="Confirm your password"
-                size="md"
-                {...form.getInputProps('confirmPassword')}
-                required
-              />
-              
-              <Button
-                type="submit"
-                size="lg"
-                fullWidth
-                loading={loading}
-                mt="md"
-              >
-                Create Account
-              </Button>
-              
-              <Center>
-                <Text size="sm" c="dimmed">
-                  Already have an account?{' '}
-                  <Anchor component={Link} href="/auth/signin" fw={500}>
-                    Sign in
-                  </Anchor>
-                </Text>
-              </Center>
-            </Stack>
-          </form>
+    <Box
+      mih="100vh"
+      bg={colorScheme === 'dark' ? 'dark.7' : 'gray.0'}
+    >
+      <Center mih="100vh" p={isMobile ? 0 : 'md'}>
+        <Card
+          radius={isMobile ? 0 : 'xl'}
+          withBorder={!isMobile}
+          shadow={isMobile ? 'none' : 'xl'}
+          w="100%"
+          maw={isMobile ? '100%' : 420}
+          p={0}
+          mih={isMobile ? '100vh' : undefined}
+        >
+          {/* Header Section */}
+          <Box
+            p="xl"
+            pb="lg"
+            bg={colorScheme === 'dark' ? 'dark.6' : 'gray.0'}
+            style={{
+              borderBottom: `1px solid ${colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors.gray[2]}`,
+            }}
+            ta="center"
+          >
+            <Title
+              order={2}
+              fw={800}
+              style={{
+                background: theme.other.brandGradient,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+              mb="xs"
+            >
+              Join Our Community
+            </Title>
+            <Text size="md" c="dimmed" fw={500}>
+              Create your account to connect with local activities
+            </Text>
+          </Box>
+
+          {/* Form Section */}
+          <Box p="xl">
+            <form onSubmit={form.onSubmit(handleSubmit)}>
+              <Stack gap="md">
+                <TextInput
+                  label="Full Name"
+                  placeholder="Your full name"
+                  required
+                  size="md"
+                  {...form.getInputProps('name')}
+                />
+
+                <TextInput
+                  label="Email Address"
+                  placeholder="your@email.com"
+                  type="email"
+                  required
+                  size="md"
+                  {...form.getInputProps('email')}
+                />
+
+                <PasswordInput
+                  label="Password"
+                  placeholder="Choose a secure password"
+                  required
+                  size="md"
+                  {...form.getInputProps('password')}
+                />
+
+                <PasswordInput
+                  label="Confirm Password"
+                  placeholder="Confirm your password"
+                  required
+                  size="md"
+                  {...form.getInputProps('confirmPassword')}
+                />
+
+                <Button
+                  type="submit"
+                  size={isMobile ? 'lg' : 'md'}
+                  loading={loading}
+                  variant="gradient"
+                  gradient={{ from: 'categoryGreen', to: 'categoryTeal', deg: 135 }}
+                  fullWidth
+                  mt="xs"
+                  h={isMobile ? 48 : undefined}
+                >
+                  Create Account
+                </Button>
+
+                <Center>
+                  <Text size="sm" c="dimmed">
+                    Already have an account?{' '}
+                    <Anchor component={Link} href="/auth/signin" c="categoryBlue" fw={600}>
+                      Sign in
+                    </Anchor>
+                  </Text>
+                </Center>
+              </Stack>
+            </form>
+          </Box>
         </Card>
-      </Container>
-    </div>
+      </Center>
+    </Box>
   );
 }

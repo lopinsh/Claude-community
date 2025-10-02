@@ -119,11 +119,22 @@ export async function POST(
     const body = await request.json()
     const validatedData = createEventSchema.parse(body)
 
+    // Only include fields that exist in the Event model
     const event = await prisma.event.create({
       data: {
-        ...validatedData,
+        title: validatedData.title,
+        description: validatedData.description,
         startDateTime: new Date(validatedData.startDateTime),
         endDateTime: validatedData.endDateTime ? new Date(validatedData.endDateTime) : null,
+        isAllDay: validatedData.isAllDay,
+        timeZone: validatedData.timeZone,
+        eventType: validatedData.eventType,
+        visibility: validatedData.visibility,
+        requiresApproval: validatedData.requiresApproval,
+        maxMembers: validatedData.maxMembers,
+        location: validatedData.location,
+        // Map weekDays array to single weekDay if provided
+        weekDay: validatedData.weekDays && validatedData.weekDays.length > 0 ? validatedData.weekDays[0] : undefined,
         groupId: params.id,
       },
       include: {
@@ -147,6 +158,7 @@ export async function POST(
 
   } catch (error) {
     console.error('Event creation error:', error)
+    console.error('Error details:', JSON.stringify(error, null, 2))
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -156,7 +168,7 @@ export async function POST(
     }
 
     return NextResponse.json(
-      { error: 'Failed to create event' },
+      { error: 'Failed to create event', message: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }

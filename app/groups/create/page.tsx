@@ -34,8 +34,8 @@ import { DateTimePicker } from '@mantine/dates'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
 import Header from '@/components/layout/Header'
+import CreateGroupSidebar from '@/components/sidebars/CreateGroupSidebar'
 import {
-  IconArrowLeft,
   IconUsers,
   IconCalendar,
   IconPlus,
@@ -84,6 +84,7 @@ export default function CreateGroupPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [activeStep, setActiveStep] = useState(0)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   const form = useForm({
     initialValues: {
@@ -223,12 +224,18 @@ export default function CreateGroupPage() {
 
   if (status === 'loading') {
     return (
-      <Container>
+      <div style={{ minHeight: '100vh', backgroundColor: '#fafafa' }}>
         <Header />
-        <Center style={{ height: '50vh' }}>
-          <Loader size="lg" />
-        </Center>
-      </Container>
+        <div style={{ display: 'flex' }}>
+          <CreateGroupSidebar
+            isCollapsed={sidebarCollapsed}
+            onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          />
+          <Center style={{ flex: 1, height: '50vh' }}>
+            <Loader size="lg" />
+          </Center>
+        </div>
+      </div>
     )
   }
 
@@ -236,19 +243,21 @@ export default function CreateGroupPage() {
   const prevStep = () => setActiveStep((current) => Math.max(current - 1, 0))
 
   return (
-    <Container size="md">
+    <div style={{ minHeight: '100vh', backgroundColor: '#fafafa' }}>
       <Header />
 
-      <Stack gap="lg">
-        {/* Header */}
-        <Group justify="space-between" align="center">
-          <Group>
-            <ActionIcon variant="subtle" component={Link} href="/activities">
-              <IconArrowLeft size={20} />
-            </ActionIcon>
-            <Title order={2}>Create Group</Title>
-          </Group>
-        </Group>
+      <div style={{ display: 'flex' }}>
+        <CreateGroupSidebar
+          isCollapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
+
+        <Container size="md" py="xl" style={{ flex: 1 }}>
+          <Stack gap="lg">
+            {/* Header */}
+            <Group justify="space-between" align="center">
+              <Title order={2}>Create Group</Title>
+            </Group>
 
         {/* Wizard */}
         <Paper withBorder p="lg" radius="md">
@@ -526,7 +535,9 @@ export default function CreateGroupPage() {
             )}
           </Group>
         </Paper>
-      </Stack>
-    </Container>
+          </Stack>
+        </Container>
+      </div>
+    </div>
   )
 }

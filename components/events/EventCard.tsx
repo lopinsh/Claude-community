@@ -1,7 +1,9 @@
-import { Card, Group, Text, Badge, Stack, Button, ThemeIcon, Box } from '@mantine/core'
+import { Card, Group, Text, Badge, Stack, Box, useMantineTheme, useMantineColorScheme, Center } from '@mantine/core'
 import { IconCalendar, IconMapPin, IconUsers, IconClock, IconUsersGroup } from '@tabler/icons-react'
+import { useMediaQuery } from '@mantine/hooks'
 import Link from 'next/link'
-import { formatDistanceToNow, format } from 'date-fns'
+import { format } from 'date-fns'
+import { useState } from 'react'
 
 interface EventGroup {
   id: string
@@ -36,9 +38,13 @@ interface EventCardProps {
 }
 
 export default function EventCard({ event }: EventCardProps) {
+  const theme = useMantineTheme()
+  const { colorScheme } = useMantineColorScheme()
+  const isMobile = useMediaQuery('(max-width: 768px)')
+  const [isHovered, setIsHovered] = useState(false)
+
   const eventTitle = event.title || `${event.group.title} Event`
   const eventLocation = event.location || event.group.location
-
   const startDate = new Date(event.startDateTime)
   const endDate = event.endDateTime ? new Date(event.endDateTime) : null
 
@@ -47,129 +53,127 @@ export default function EventCard({ event }: EventCardProps) {
     return format(date, 'HH:mm')
   }
 
-  const formatDateDisplay = () => {
-    if (event.isAllDay) {
-      return format(startDate, 'MMM dd, yyyy')
-    }
-
-    const dateStr = format(startDate, 'MMM dd, yyyy')
-    const timeStr = formatTime(startDate)
-    const endTimeStr = endDate ? ` - ${formatTime(endDate)}` : ''
-
-    return `${dateStr} at ${timeStr}${endTimeStr}`
-  }
-
   return (
-    <Card shadow="sm" padding="md" radius="md" withBorder>
-      <Stack gap="sm">
-        {/* Header */}
-        <Group justify="space-between" align="flex-start">
-          <Stack gap="xs" style={{ flex: 1 }}>
-            <Group gap="xs">
-              <Text fw={600} size="lg" lineClamp={1}>
-                {eventTitle}
-              </Text>
-              <Badge
-                variant="light"
-                color={event.eventType === 'SPECIAL' ? 'grape' : 'blue'}
-                size="xs"
-              >
-                {event.eventType === 'SPECIAL' ? 'Special' : 'Regular'}
-              </Badge>
-              <Badge variant="dot" color="green" size="xs">
-                Public
-              </Badge>
-            </Group>
+    <Card
+      component={Link}
+      href={`/events/${event.id}`}
+      p={isMobile ? 'lg' : 'md'}
+      radius="xl"
+      withBorder
+      h={isMobile ? undefined : 380}
+      mih={280}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        textDecoration: 'none',
+        cursor: 'pointer',
+        transform: isHovered && !isMobile ? 'translateY(-4px)' : 'translateY(0)',
+        boxShadow: isHovered ? theme.shadows.xl : theme.shadows.sm,
+        transition: theme.other.transition,
+      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* Header with gradient */}
+      <Card.Section
+        h={120}
+        style={{
+          background: theme.other.brandGradient,
+          position: 'relative',
+        }}
+      >
+        <Badge
+          pos="absolute"
+          top={12}
+          left={12}
+          variant="filled"
+          color={event.eventType === 'SPECIAL' ? 'categoryBlue' : 'categoryTeal'}
+          size="xs"
+        >
+          {event.eventType === 'SPECIAL' ? 'Special' : 'Event'}
+        </Badge>
 
-            {event.description && (
-              <Text size="sm" c="dimmed" lineClamp={2}>
-                {event.description}
-              </Text>
-            )}
-          </Stack>
-        </Group>
+        <Badge
+          pos="absolute"
+          top={12}
+          right={12}
+          variant="filled"
+          color="categoryGreen"
+          size="xs"
+        >
+          Public
+        </Badge>
 
-        {/* Event Details */}
+        {/* Date display */}
+        <Box pos="absolute" bottom={16} left={16}>
+          <Text size="xl" fw={800} c="white" lh={1}>
+            {format(startDate, 'dd')}
+          </Text>
+          <Text size="sm" fw={600} c="white" tt="uppercase">
+            {format(startDate, 'MMM yyyy')}
+          </Text>
+        </Box>
+      </Card.Section>
+
+      {/* Content */}
+      <Stack gap="md" mt="md" style={{ flex: 1 }}>
+        <Box>
+          <Text fw={700} size="lg" lineClamp={1} mb="xs">
+            {eventTitle}
+          </Text>
+          {event.description && (
+            <Text size="sm" c="dimmed" lineClamp={2}>
+              {event.description}
+            </Text>
+          )}
+        </Box>
+
         <Stack gap="xs">
           <Group gap="xs">
-            <ThemeIcon size="sm" variant="subtle" color="blue">
-              <IconCalendar size={14} />
-            </ThemeIcon>
-            <Text size="sm">{formatDateDisplay()}</Text>
+            <Center w={20} h={20} bg={colorScheme === 'dark' ? 'categoryTeal.9' : 'categoryTeal.0'} style={{ borderRadius: theme.radius.sm }}>
+              <IconClock size={12} color={theme.colors.categoryTeal[colorScheme === 'dark' ? 4 : 6]} />
+            </Center>
+            <Text size="sm" fw={500}>
+              {formatTime(startDate)}
+              {endDate && !event.isAllDay && ` - ${formatTime(endDate)}`}
+            </Text>
           </Group>
 
           <Group gap="xs">
-            <ThemeIcon size="sm" variant="subtle" color="green">
-              <IconMapPin size={14} />
-            </ThemeIcon>
-            <Text size="sm">{eventLocation}</Text>
+            <Center w={20} h={20} bg={colorScheme === 'dark' ? 'categoryGreen.9' : 'categoryGreen.0'} style={{ borderRadius: theme.radius.sm }}>
+              <IconMapPin size={12} color={theme.colors.categoryGreen[colorScheme === 'dark' ? 4 : 6]} />
+            </Center>
+            <Text size="sm" fw={500} lineClamp={1}>
+              {eventLocation}
+            </Text>
           </Group>
 
           <Group gap="xs">
-            <ThemeIcon size="sm" variant="subtle" color="orange">
-              <IconUsersGroup size={14} />
-            </ThemeIcon>
-            <Text size="sm" component={Link} href={`/groups/${event.group.id}`} style={{ textDecoration: 'none' }}>
+            <Center w={20} h={20} bg={colorScheme === 'dark' ? 'categoryYellow.9' : 'categoryYellow.0'} style={{ borderRadius: theme.radius.sm }}>
+              <IconUsersGroup size={12} color={theme.colors.categoryYellow[colorScheme === 'dark' ? 4 : 7]} />
+            </Center>
+            <Text size="sm" fw={500} lineClamp={1}>
               {event.group.title}
             </Text>
           </Group>
         </Stack>
 
-        {/* Attendance Info */}
-        <Group gap="lg">
+        <Box style={{ flex: 1 }} />
+
+        {/* Footer */}
+        <Group justify="space-between" pt="md" style={{ borderTop: `1px solid ${colorScheme === 'dark' ? theme.colors.dark[4] : theme.colors.gray[2]}` }}>
           <Group gap="xs">
-            <ThemeIcon size="sm" variant="subtle" color="cyan">
-              <IconUsers size={14} />
-            </ThemeIcon>
-            <Text size="sm">
+            <IconUsers size={14} color={theme.colors.categoryBlue[5]} />
+            <Text size="xs" c="dimmed" fw={500}>
               {event._count.attendees} attending
-              {event.maxMembers && ` (max ${event.maxMembers})`}
             </Text>
           </Group>
 
           {event.requiresApproval && (
-            <Badge variant="light" color="yellow" size="xs">
+            <Badge size="xs" variant="light" color="categoryYellow">
               Approval Required
             </Badge>
           )}
-        </Group>
-
-        {/* Time Until Event */}
-        <Box p="xs" style={{ backgroundColor: 'var(--mantine-color-blue-0)', borderRadius: '4px' }}>
-          <Group gap="xs">
-            <ThemeIcon size="xs" variant="subtle" color="blue">
-              <IconClock size={10} />
-            </ThemeIcon>
-            <Text size="xs" fw={500}>
-              {formatDistanceToNow(startDate, { addSuffix: true })}
-            </Text>
-          </Group>
-        </Box>
-
-        {/* Actions */}
-        <Group justify="space-between" mt="xs">
-          <Text size="xs" c="dimmed">
-            by {event.group.creator.name}
-          </Text>
-
-          <Group gap="xs">
-            <Button
-              component={Link}
-              href={`/groups/${event.group.id}`}
-              size="xs"
-              variant="subtle"
-            >
-              View Group
-            </Button>
-            <Button
-              component={Link}
-              href={`/groups/${event.group.id}/events/${event.id}`}
-              size="xs"
-              variant="light"
-            >
-              View Event
-            </Button>
-          </Group>
         </Group>
       </Stack>
     </Card>

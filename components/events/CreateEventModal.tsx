@@ -20,6 +20,7 @@ import {
 } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
 import { IconCalendar, IconClock, IconMapPin, IconUsers, IconAlertCircle } from '@tabler/icons-react';
+import { useMediaQuery } from '@mantine/hooks';
 
 interface CreateEventModalProps {
   opened: boolean;
@@ -76,6 +77,7 @@ export default function CreateEventModal({
   onEventCreated,
   editingEvent
 }: CreateEventModalProps) {
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const [formData, setFormData] = useState<EventFormData>({
     ...initialFormData,
     location: groupLocation
@@ -203,11 +205,22 @@ export default function CreateEventModal({
       onClose={handleClose}
       title={editingEvent ? `Edit Event` : `Create Event for ${groupTitle}`}
       size="lg"
-      centered
+      centered={!isMobile}
+      fullScreen={isMobile}
       closeOnClickOutside={false}
+      styles={{
+        body: {
+          padding: isMobile ? '1rem' : undefined,
+        },
+      }}
     >
       <Stack gap="lg">
-        <Stepper active={activeStep} allowNextStepsSelect={false}>
+        <Stepper
+          active={activeStep}
+          allowNextStepsSelect={false}
+          orientation={isMobile ? 'vertical' : 'horizontal'}
+          iconSize={isMobile ? 32 : 42}
+        >
           <Stepper.Step label="Event Details" description="Basic event information">
             <Stack gap="md" pt="md">
               <TextInput
@@ -227,7 +240,7 @@ export default function CreateEventModal({
                 rows={3}
               />
 
-              <Group grow>
+              <Group grow={!isMobile}>
                 <DateTimePicker
                   label="Start Date & Time"
                   placeholder="Select start date and time"
@@ -236,6 +249,8 @@ export default function CreateEventModal({
                   onChange={(date) => updateFormData('startDateTime', date)}
                   leftSection={<IconClock size={16} />}
                   disabled={formData.isAllDay}
+                  size={isMobile ? 'md' : 'sm'}
+                  w={isMobile ? '100%' : undefined}
                 />
 
                 {!formData.isAllDay && (
@@ -246,6 +261,8 @@ export default function CreateEventModal({
                     onChange={(date) => updateFormData('endDateTime', date)}
                     leftSection={<IconClock size={16} />}
                     minDate={formData.startDateTime}
+                    size={isMobile ? 'md' : 'sm'}
+                    w={isMobile ? '100%' : undefined}
                   />
                 )}
               </Group>
@@ -412,11 +429,13 @@ export default function CreateEventModal({
           </Alert>
         )}
 
-        <Group justify="space-between">
+        <Group justify="space-between" mt={isMobile ? 'xl' : 'md'}>
           <Button
             variant="subtle"
             onClick={activeStep === 0 ? handleClose : prevStep}
             disabled={loading}
+            size={isMobile ? 'md' : 'sm'}
+            style={{ minHeight: isMobile ? '44px' : undefined }}
           >
             {activeStep === 0 ? 'Cancel' : 'Back'}
           </Button>
@@ -425,6 +444,8 @@ export default function CreateEventModal({
             onClick={activeStep === 3 ? handleSubmit : nextStep}
             loading={loading}
             disabled={!canProceedToNextStep()}
+            size={isMobile ? 'md' : 'sm'}
+            style={{ minHeight: isMobile ? '44px' : undefined }}
           >
 {activeStep === 3 ? (editingEvent ? 'Update Event' : 'Create Event') : 'Next'}
           </Button>

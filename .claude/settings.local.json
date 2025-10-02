@@ -16,9 +16,26 @@
       "WebSearch",
       "mcp__ide__getDiagnostics",
       "Bash(find:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(npx tsx:*)",
+      "Read(//d/**)",
+      "WebFetch(domain:draculatheme.com)",
+      "Bash(npx:*)",
+      "mcp__puppeteer__*",
+      "mcp__puppeteer__puppeteer_navigate",
+      "mcp__puppeteer__puppeteer_screenshot",
+      "mcp__puppeteer__puppeteer_click",
+      "mcp__puppeteer__puppeteer_evaluate",
+      "Bash(curl:*)",
+      "Bash(timeout:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(DATABASE_URL=\"postgresql://postgres:password@localhost:5432/community_platform\" npx prisma migrate dev --name init)",
+      "Bash(DATABASE_URL=\"postgresql://postgres:Akvalangists11@localhost:5432/community_platform\" npx prisma migrate dev --name init)",
+      "Bash(cat:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enableAllProjectMcpServers": true
 }

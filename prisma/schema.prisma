@@ -23,17 +23,32 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Role-based access control
+  role UserRole @default(USER)
+
+  // Company-specific fields (for COMPANY role)
+  companyName            String?
+  companyBio             String?
+  subscriptionStatus     SubscriptionStatus?
+  subscriptionStartDate  DateTime?
+  subscriptionEndDate    DateTime?
+
   // NextAuth.js required fields
   accounts Account[]
   sessions Session[]
 
   // Our app relationships
-  activities     Activity[] // Legacy activities
-  groups         Group[] // New groups (creator relationship)
+  groups         Group[] // Groups created by this user
   applications   Application[] // Applications to join groups
   eventAttendees EventAttendee[] // Attendance at specific events
   groupMessages  GroupMessage[]
   notifications  Notification[]
+  tagSuggestions TagSuggestion[] // Tag suggestions made by this user
+  newsArticles   NewsArticle[] // News articles authored by this user
+  pages          Page[] // Pages authored by this user
+
+  // Track pending suggestions for rate limiting
+  pendingSuggestionCount Int @default(0)
 
   @@map("users")
 }
@@ -69,13 +84,14 @@ model Session {
   @@map("sessions")
 }
 
-// Tag system
+// Enhanced Tag system with proper hierarchy
 model Tag {
   id         String    @id @default(cuid())
   name       String    @unique
   parentId   String?
-  level      Int       @default(1) // 1=broad, 2=specific, 3=attributes
-  usageCount Int       @default(0) // Track popularity
+  level      Int       @default(1) // 1=broad categories, 2=specific types, 3=attributes
+  group      TagGroup  @default(VERTICAL) // VERTICAL (hierarchical) or HORIZONTAL (attributes)
+  usageCount Int       @default(0) // Track popularity for recommendations
   status     TagStatus @default(ACTIVE)
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
@@ -84,25 +100,63 @@ model Tag {
   parent   Tag?  @relation("TagHierarchy", fields: [parentId], references: [id])
   children Tag[] @relation("TagHierarchy")
 
-  // Activity relationships
-  activities ActivityTag[]
-  groups     GroupTag[]
+  // Relationships with groups and events (removed legacy activities)
+  groups GroupTag[]
+  events EventTag[] // Events can have specific tags
 
   @@map("tags")
 }
 
-model ActivityTag {
-  id         String   @id @default(cuid())
-  activityId String
-  tagId      String
-  createdAt  DateTime @default(now())
+// Tag suggestions from users (community-driven taxonomy growth)
+model TagSuggestion {
+  id     String               @id @default(cuid())
+  nameEn String // Suggested tag name in English
+  nameLv String // Suggested tag name in Latvian
+  level  Int                  @default(3) // Always 3 (users can only suggest Level 3)
+  status TagSuggestionStatus @default(PENDING)
 
-  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
-  tag      Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  // Multiple parents allowed (Level 2 tags)
+  parentTagIds String[] // Array of Tag IDs this should connect to
 
-  @@unique([activityId, tagId])
-  @@map("activity_tags")
+  // User who suggested
+  suggestedById String
+  suggestedBy   User   @relation(fields: [suggestedById], references: [id], onDelete: Cascade)
+
+  // Moderation fields
+  moderatedById   String? // User ID of moderator who reviewed
+  moderatedAt     DateTime? // When was it reviewed
+  moderatorNotes  String? // Reason for denial or notes
+  mergedIntoTagId String? // If merged, which existing tag was it merged into
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([suggestedById, status])
+  @@map("tag_suggestions")
 }
+
+enum TagSuggestionStatus {
+  PENDING
+  APPROVED
+  DENIED
+  MERGED
+}
+
+// New join table for Event tags
+model EventTag {
+  id        String   @id @default(cuid())
+  eventId   String
+  tagId     String
+  createdAt DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tag   Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, tagId])
+  @@map("event_tags")
+}
+
 
 model GroupTag {
   id        String   @id @default(cuid())
@@ -131,6 +185,12 @@ model Group {
   // Group type determines behavior
   groupType GroupType @default(SINGLE_EVENT) // SINGLE_EVENT or RECURRING_GROUP
 
+  // Moderation fields
+  moderationStatus ModerationStatus @default(APPROVED) // PENDING, APPROVED, REJECTED
+  moderatedAt      DateTime? // When was it reviewed
+  moderatedBy      String? // User ID of moderator
+  moderationNotes  String? // Internal notes from moderator
+
   // Relationships
   creatorId     String
   creator       User           @relation(fields: [creatorId], references: [id], onDelete: Cascade)
@@ -140,6 +200,10 @@ model Group {
   notifications Notification[]
   tags          GroupTag[] // Renamed from ActivityTag
 
+  // Performance indexes
+  @@index([isActive, createdAt])
+  @@index([location])
+  @@index([creatorId])
   @@map("groups")
 }
 
@@ -174,7 +238,12 @@ model Event {
   groupId   String
   group     Group           @relation(fields: [groupId], references: [id], onDelete: Cascade)
   attendees EventAttendee[] // Who's attending this specific event
+  tags      EventTag[]      // Event-specific tags
 
+  // Performance indexes
+  @@index([startDateTime])
+  @@index([visibility, startDateTime])
+  @@index([groupId, startDateTime])
   @@map("events")
 }
 
@@ -192,6 +261,8 @@ model EventAttendee {
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@unique([userId, eventId])
+  @@index([status])
+  @@index([eventId, status])
   @@map("event_attendees")
 }
 
@@ -218,43 +289,12 @@ enum AttendanceStatus {
   MAYBE
 }
 
-// Legacy Activity model (keep for migration compatibility)
-model Activity {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  location    String
-  maxMembers  Int?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Calendar & Scheduling fields
-  startDateTime DateTime?
-  endDateTime   DateTime?
-  isAllDay      Boolean   @default(false)
-  timeZone      String?
-
-  // Recurrence fields (deprecated)
-  isRecurring    Boolean   @default(false)
-  recurrenceRule String?
-  recurrenceEnd  DateTime?
-
-  // Recurring event relationships (deprecated)
-  parentEventId  String?
-  parentEvent    Activity?  @relation("EventRecurrence", fields: [parentEventId], references: [id])
-  eventInstances Activity[] @relation("EventRecurrence")
-
-  // Relationships
-  creatorId     String
-  creator       User           @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  applications  Application[]
-  groupMessages GroupMessage[]
-  notifications Notification[]
-  tags          ActivityTag[]
-
-  @@map("activities")
+enum ModerationStatus {
+  PENDING   // Awaiting moderator review
+  APPROVED  // Approved by moderator
+  REJECTED  // Rejected by moderator
 }
+
 
 model Application {
   id        String   @id @default(cuid())
@@ -263,23 +303,19 @@ model Application {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relationships - support both legacy activities and new groups
+  // Relationships - only support groups now
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Legacy activity relationship (optional for backward compatibility)
-  activityId String?
-  activity   Activity? @relation(fields: [activityId], references: [id], onDelete: Cascade)
-
-  // New group relationship
-  groupId String?
-  group   Group?  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  // Group relationship (required)
+  groupId String
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   notifications Notification[]
 
-  // Ensure one of activity or group is set
-  @@unique([userId, activityId])
   @@unique([userId, groupId])
+  @@index([status])
+  @@index([groupId, status])
   @@map("applications")
 }
 
@@ -288,17 +324,13 @@ model GroupMessage {
   content   String
   createdAt DateTime @default(now())
 
-  // Relationships - support both legacy activities and new groups
+  // Relationships - only support groups now
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Legacy activity relationship (optional)
-  activityId String?
-  activity   Activity? @relation(fields: [activityId], references: [id], onDelete: Cascade)
-
-  // New group relationship
-  groupId String?
-  group   Group?  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  // Group relationship (required)
+  groupId String
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   notifications Notification[]
 
@@ -318,9 +350,6 @@ model Notification {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Optional relations to link notifications to specific entities
-  activityId String?
-  activity   Activity? @relation(fields: [activityId], references: [id], onDelete: Cascade)
-
   groupId String?
   group   Group?  @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
@@ -337,15 +366,82 @@ model Notification {
 }
 
 enum NotificationType {
-  NEW_APPLICATION // Someone applied to your activity
+  NEW_APPLICATION // Someone applied to your group
   APPLICATION_ACCEPTED // Your application was accepted
   APPLICATION_DECLINED // Your application was declined
-  NEW_MESSAGE // New message in activity you joined
-  ACTIVITY_UPDATE // Activity you joined was updated
+  NEW_MESSAGE // New message in group you joined
+  GROUP_UPDATE // Group you joined was updated
+  EVENT_CREATED // New event created in your group
+  EVENT_UPDATED // Event in your group was updated
+  TAG_SUGGESTION_APPROVED // Your tag suggestion was approved
+  TAG_SUGGESTION_DENIED // Your tag suggestion was denied
+  TAG_SUGGESTION_MERGED // Your tag suggestion was merged with existing tag
+}
+
+// News article model for community updates
+model NewsArticle {
+  id            String    @id @default(cuid())
+  title         String
+  slug          String    @unique
+  content       String    @db.Text
+  excerpt       String?   @db.Text
+  featuredImage String?
+  published     Boolean   @default(false)
+  publishedAt   DateTime?
+
+  // Author relationship
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, publishedAt])
+  @@index([slug])
+  @@map("news_articles")
+}
+
+// Custom pages created by moderators
+model Page {
+  id        String   @id @default(cuid())
+  title     String
+  slug      String   @unique
+  content   String   @db.Text
+  published Boolean  @default(false)
+
+  // Author relationship
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published])
+  @@index([slug])
+  @@map("pages")
 }
 
 enum TagStatus {
   ACTIVE
   MERGED
   DEPRECATED
+}
+
+enum TagGroup {
+  VERTICAL    // Hierarchical tags (Physical Activities -> Dance -> Folk Dance)
+  HORIZONTAL  // Attribute tags (Beginner-Friendly, Weekly, Evening)
+}
+
+enum UserRole {
+  USER       // Regular user (default)
+  MODERATOR  // Can manage tags, approve content, publish news/pages
+  COMPANY    // Business partner with subscription features
+  ADMIN      // Full system access (developers)
+}
+
+enum SubscriptionStatus {
+  TRIAL      // Trial period
+  ACTIVE     // Active subscription
+  SUSPENDED  // Temporarily suspended (payment issue)
+  CANCELLED  // Cancelled subscription
 }

@@ -68,7 +68,27 @@ export async function GET(request: NextRequest) {
         tags: {
           include: {
             tag: {
-              select: { id: true, name: true, level: true }
+              select: {
+                id: true,
+                name: true,
+                level: true,
+                parentId: true,
+                parent: {
+                  select: {
+                    id: true,
+                    name: true,
+                    level: true,
+                    parentId: true,
+                    parent: {
+                      select: {
+                        id: true,
+                        name: true,
+                        level: true
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
         },
@@ -156,6 +176,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Group creation error:', error)
+    console.error('Error details:', JSON.stringify(error, null, 2))
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -165,7 +186,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Failed to create group' },
+      { error: 'Failed to create group', message: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }

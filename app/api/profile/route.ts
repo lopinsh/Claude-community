@@ -59,12 +59,19 @@ export async function GET() {
       );
     }
 
+    // Combine owned groups and accepted applications
+    const activities = [
+      ...profile.groups,
+      ...profile.applications.map(app => app.group)
+    ];
+
     const profileData = {
       id: profile.id,
       name: profile.name,
       email: profile.email,
       location: profile.location,
       bio: profile.bio,
+      activities: activities,
     };
 
     return NextResponse.json({ profile: profileData });
@@ -134,12 +141,19 @@ export async function PUT(request: NextRequest) {
       },
     });
 
+    // Combine owned groups and accepted applications
+    const activities = [
+      ...updatedProfile.groups,
+      ...updatedProfile.applications.map(app => app.group)
+    ];
+
     const profileData = {
       id: updatedProfile.id,
       name: updatedProfile.name,
       email: updatedProfile.email,
       location: updatedProfile.location,
       bio: updatedProfile.bio,
+      activities: activities,
     };
 
     return NextResponse.json({

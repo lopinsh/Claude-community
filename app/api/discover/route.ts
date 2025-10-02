@@ -9,7 +9,9 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions)
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search')
-    const category = searchParams.get('category')
+    const categories = searchParams.get('categories')
+    const level2 = searchParams.get('level2')
+    const level3 = searchParams.get('level3')
     const location = searchParams.get('location')
     const type = searchParams.get('type') // 'groups', 'events', or 'all'
 
@@ -30,6 +32,58 @@ export async function GET(request: NextRequest) {
       whereConditions.location = location
     }
 
+    // Multi-level category filtering
+    const tagConditions: any[] = []
+
+    // Level 1 category filtering
+    if (categories) {
+      const categoryList = categories.split(',')
+      const categoryNames = categoryList.map(cat =>
+        cat.split('-').map(word =>
+          word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ').replace('Craft', '& Craft').replace('Wellness', '& Wellness').replace('Fun', '& Fun').replace('Spectacle', '& Spectacle').replace('Governance', '& Governance').replace('Resource', '& Resource')
+      )
+
+      tagConditions.push({
+        tag: {
+          name: { in: categoryNames },
+          level: 1
+        }
+      })
+    }
+
+    // Level 2 category filtering
+    if (level2) {
+      const level2Ids = level2.split(',')
+      tagConditions.push({
+        tag: {
+          id: { in: level2Ids },
+          level: 2
+        }
+      })
+    }
+
+    // Level 3 category filtering
+    if (level3) {
+      const level3Ids = level3.split(',')
+      tagConditions.push({
+        tag: {
+          id: { in: level3Ids },
+          level: 3
+        }
+      })
+    }
+
+    // Apply tag filtering if any level is selected
+    if (tagConditions.length > 0) {
+      // Each tag condition should be a separate "some" requirement
+      whereConditions.AND = tagConditions.map(condition => ({
+        tags: {
+          some: condition
+        }
+      }))
+    }
+
     // Get groups
     let groups: any[] = []
     if (type !== 'events') {
@@ -42,7 +96,27 @@ export async function GET(request: NextRequest) {
           tags: {
             include: {
               tag: {
-                select: { id: true, name: true, level: true }
+                select: {
+                  id: true,
+                  name: true,
+                  level: true,
+                  parentId: true,
+                  parent: {
+                    select: {
+                      id: true,
+                      name: true,
+                      level: true,
+                      parentId: true,
+                      parent: {
+                        select: {
+                          id: true,
+                          name: true,
+                          level: true
+                        }
+                      }
+                    }
+                  }
+                }
               }
             }
           },
@@ -83,6 +157,7 @@ export async function GET(request: NextRequest) {
         orderBy: { createdAt: 'desc' },
         take: 20
       })
+
     }
 
     // Get events (public + private for authenticated users)

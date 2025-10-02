@@ -13,13 +13,17 @@ import {
   Button,
   Tabs,
   Badge,
-  Paper
+  Paper,
+  TextInput,
+  SimpleGrid,
+  useMantineTheme,
+  useMantineColorScheme
 } from '@mantine/core';
-import { IconPlus, IconUsers, IconCalendar, IconApps, IconList } from '@tabler/icons-react';
+import { IconPlus, IconUsers, IconCalendar, IconApps, IconList, IconSearch } from '@tabler/icons-react';
 import GroupCard from '@/components/groups/GroupCard';
 import EventCard from '@/components/events/EventCard';
 import CreateGroupModal from '@/components/groups/CreateGroupModal';
-import EventCalendar from '@/components/events/EventCalendar';
+// import EventCalendar from '@/components/events/EventCalendar'; // TODO: Install react-lightweight-calendar
 import EventDetailModal from '@/components/events/EventDetailModal';
 
 interface Group {
@@ -69,54 +73,26 @@ interface MainContentProps {
   publicEvents: PublicEvent[];
   loading: boolean;
   error: string | null;
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+  onCreateGroup: () => void;
+  onSearchClick?: () => void;
 }
 
 
-export default function MainContent({ groups, publicEvents, loading, error }: MainContentProps) {
+export default function MainContent({ groups, publicEvents, loading, error, searchQuery, onSearchChange, onCreateGroup, onSearchClick }: MainContentProps) {
+  const theme = useMantineTheme();
+  const { colorScheme } = useMantineColorScheme();
   const { data: session } = useSession();
   const [createModalOpened, setCreateModalOpened] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
   const [eventViewMode, setEventViewMode] = useState<'list' | 'calendar'>('list');
-  const [allEvents, setAllEvents] = useState<PublicEvent[]>([]);
-  const [eventsLoading, setEventsLoading] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [eventDetailModalOpened, setEventDetailModalOpened] = useState(false);
-
-  // Fetch all events (public + private for logged-in users) for calendar view
-  const fetchAllEvents = async () => {
-    if (activeTab !== 'calendar') return;
-
-    setEventsLoading(true);
-    try {
-      const response = await fetch('/api/calendar/events');
-      if (response.ok) {
-        const data = await response.json();
-        setAllEvents(data.events || []);
-      }
-    } catch (error) {
-      console.error('Error fetching events:', error);
-    } finally {
-      setEventsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (activeTab === 'calendar') {
-      fetchAllEvents();
-    }
-  }, [activeTab]);
 
   const handleEventClick = (eventId: string) => {
     setSelectedEventId(eventId);
     setEventDetailModalOpened(true);
-  };
-
-  const handleEventUpdated = () => {
-    fetchAllEvents();
-  };
-
-  const handleEventDeleted = () => {
-    fetchAllEvents();
   };
 
   if (loading) {
@@ -146,79 +122,93 @@ export default function MainContent({ groups, publicEvents, loading, error }: Ma
   }
 
   return (
-    <Box p="md" style={{ flex: 1 }}>
-      {/* Header with results count and sort */}
-      <Group justify="space-between" mb="lg">
-        <div>
-          <Title order={2} size="h3" mb="xs">
-            Community
-          </Title>
-          <Text c="dimmed" mb="md">
-            Discover groups and public events in your area
-          </Text>
-
-          <Tabs value={activeTab} onChange={(value) => setActiveTab(value || 'all')}>
-            <Tabs.List>
-              <Tabs.Tab value="all" leftSection={<IconApps size={16} />}>
-                All
-                <Badge variant="light" size="xs" ml="xs">
-                  {groups.length + publicEvents.length}
-                </Badge>
-              </Tabs.Tab>
-              <Tabs.Tab value="groups" leftSection={<IconUsers size={16} />}>
-                Groups
-                <Badge variant="light" size="xs" ml="xs">
-                  {groups.length}
-                </Badge>
-              </Tabs.Tab>
-              <Tabs.Tab value="events" leftSection={<IconList size={16} />}>
-                Events
-                <Badge variant="light" size="xs" ml="xs">
-                  {publicEvents.length}
-                </Badge>
-              </Tabs.Tab>
-              <Tabs.Tab value="calendar" leftSection={<IconCalendar size={16} />}>
-                Calendar
-                <Badge variant="light" size="xs" ml="xs">
-                  {allEvents.length > 0 ? allEvents.length : ''}
-                </Badge>
-              </Tabs.Tab>
-            </Tabs.List>
-          </Tabs>
-        </div>
-
-        <Group>
-          {(activeTab === 'events' || activeTab === 'calendar') && (
-            <Button.Group>
+    <Box w="100%">
+      {/* Header with tabs, search, and view toggle */}
+      <Stack gap="lg" mb="xl">
+        <Group justify="space-between" align="center" wrap="wrap" gap="md">
+          <Group gap={2} p={4} bg={colorScheme === 'dark' ? 'dark.6' : 'gray.1'} style={{ borderRadius: theme.radius.lg }}>
+            {[
+              { key: 'all', label: 'All', icon: IconApps, count: groups.length + publicEvents.length },
+              { key: 'groups', label: 'Groups', icon: IconUsers, count: groups.length },
+              { key: 'events', label: 'Events', icon: IconList, count: publicEvents.length }
+            ].map(({ key, label, icon: Icon, count }) => (
               <Button
-                variant={eventViewMode === 'list' ? 'filled' : 'outline'}
-                onClick={() => setEventViewMode('list')}
+                key={key}
+                onClick={() => setActiveTab(key)}
+                variant={activeTab === key ? (colorScheme === 'dark' ? 'light' : 'white') : 'subtle'}
+                color={activeTab === key ? 'categoryBlue' : 'gray'}
                 size="sm"
+                leftSection={<Icon size={16} />}
+                rightSection={count > 0 ? (
+                  <Badge
+                    size="xs"
+                    variant="filled"
+                    color={activeTab === key ? 'categoryPeach' : 'gray'}
+                    style={{ minWidth: '18px' }}
+                  >
+                    {count}
+                  </Badge>
+                ) : null}
+                fw={activeTab === key ? 600 : 500}
+                style={{
+                  boxShadow: activeTab === key ? theme.shadows.sm : 'none',
+                  transition: theme.other.transition
+                }}
+              >
+                {label}
+              </Button>
+            ))}
+          </Group>
+
+          {/* Search Bar - Moved here */}
+          <Box style={{ flex: 1, maxWidth: '400px' }}>
+            <TextInput
+              placeholder="Search groups and events..."
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.currentTarget.value)}
+              onFocus={onSearchClick ? () => onSearchClick() : undefined}
+              readOnly={!!onSearchClick}
+              leftSection={<IconSearch size={18} />}
+              size="md"
+              style={{ cursor: onSearchClick ? 'pointer' : undefined }}
+            />
+          </Box>
+
+          {/* View Toggle for Events Tab */}
+          {activeTab === 'events' && (
+            <Group gap={2} p={2} bg={colorScheme === 'dark' ? 'dark.6' : 'gray.1'} style={{ borderRadius: theme.radius.md }}>
+              <Button
+                onClick={() => setEventViewMode('list')}
+                variant={eventViewMode === 'list' ? (colorScheme === 'dark' ? 'light' : 'white') : 'subtle'}
+                color={eventViewMode === 'list' ? 'categoryTeal' : 'gray'}
+                size="xs"
                 leftSection={<IconList size={14} />}
+                fw={500}
+                style={{
+                  boxShadow: eventViewMode === 'list' ? theme.shadows.xs : 'none',
+                  transition: theme.other.transition
+                }}
               >
                 List
               </Button>
               <Button
-                variant={eventViewMode === 'calendar' ? 'filled' : 'outline'}
                 onClick={() => setEventViewMode('calendar')}
-                size="sm"
+                variant={eventViewMode === 'calendar' ? (colorScheme === 'dark' ? 'light' : 'white') : 'subtle'}
+                color={eventViewMode === 'calendar' ? 'categoryTeal' : 'gray'}
+                size="xs"
                 leftSection={<IconCalendar size={14} />}
+                fw={500}
+                style={{
+                  boxShadow: eventViewMode === 'calendar' ? theme.shadows.xs : 'none',
+                  transition: theme.other.transition
+                }}
               >
                 Calendar
               </Button>
-            </Button.Group>
+            </Group>
           )}
-
-          <Button
-            leftSection={<IconPlus size={16} />}
-            onClick={() => setCreateModalOpened(true)}
-            gradient={{ from: 'blue', to: 'cyan', deg: 45 }}
-            variant="gradient"
-          >
-            Create Group
-          </Button>
         </Group>
-      </Group>
+      </Stack>
 
       {/* Content Grid based on active tab */}
       {activeTab === 'all' && (
@@ -231,20 +221,20 @@ export default function MainContent({ groups, publicEvents, loading, error }: Ma
               </Stack>
             </Center>
           ) : (
-            <Grid gutter="lg">
+            <SimpleGrid
+              cols={{ base: 1, sm: 2, lg: 3 }}
+              spacing={{ base: 'md', lg: 'lg' }}
+              verticalSpacing={{ base: 'md', lg: 'lg' }}
+            >
               {/* Show groups first */}
               {groups.map((group) => (
-                <Grid.Col key={`group-${group.id}`} span={{ base: 12, sm: 6, lg: 4 }}>
-                  <GroupCard group={group} />
-                </Grid.Col>
+                <GroupCard key={`group-${group.id}`} group={group} />
               ))}
               {/* Then show public events */}
               {publicEvents.map((event) => (
-                <Grid.Col key={`event-${event.id}`} span={{ base: 12, sm: 6, lg: 4 }}>
-                  <EventCard event={event} />
-                </Grid.Col>
+                <EventCard key={`event-${event.id}`} event={event} />
               ))}
-            </Grid>
+            </SimpleGrid>
           )}
         </>
       )}
@@ -259,13 +249,15 @@ export default function MainContent({ groups, publicEvents, loading, error }: Ma
               </Stack>
             </Center>
           ) : (
-            <Grid gutter="lg">
+            <SimpleGrid
+              cols={{ base: 1, sm: 2, lg: 3 }}
+              spacing={{ base: 'md', lg: 'lg' }}
+              verticalSpacing={{ base: 'md', lg: 'lg' }}
+            >
               {groups.map((group) => (
-                <Grid.Col key={group.id} span={{ base: 12, sm: 6, lg: 4 }}>
-                  <GroupCard group={group} />
-                </Grid.Col>
+                <GroupCard key={group.id} group={group} />
               ))}
-            </Grid>
+            </SimpleGrid>
           )}
         </>
       )}
@@ -282,28 +274,25 @@ export default function MainContent({ groups, publicEvents, loading, error }: Ma
           ) : (
             <>
               {eventViewMode === 'list' ? (
-                <Grid gutter="lg">
+                <SimpleGrid
+                  cols={{ base: 1, sm: 2, lg: 3 }}
+                  spacing={{ base: 'md', lg: 'lg' }}
+                  verticalSpacing={{ base: 'md', lg: 'lg' }}
+                >
                   {publicEvents.map((event) => (
-                    <Grid.Col key={event.id} span={{ base: 12, sm: 6, lg: 4 }}>
-                      <EventCard event={event} />
-                    </Grid.Col>
+                    <EventCard key={event.id} event={event} />
                   ))}
-                </Grid>
+                </SimpleGrid>
               ) : (
-                <Paper p="lg" withBorder>
-                  <EventCalendar
-                    events={publicEvents.map(event => ({
-                      ...event,
-                      group: {
-                        id: event.group.id,
-                        title: event.group.title,
-                        location: event.group.location,
-                        creator: event.group.creator,
-                      },
-                    }))}
-                    onSelectEvent={(event) => handleEventClick(event.id)}
-                    height={600}
-                  />
+                <Paper p="xl" withBorder>
+                  <Stack align="center" gap="md">
+                    <Text size="lg" fw={500} c="dimmed">
+                      Calendar view temporarily disabled
+                    </Text>
+                    <Text size="sm" c="dimmed" ta="center">
+                      Please use list view for now
+                    </Text>
+                  </Stack>
                 </Paper>
               )}
             </>
@@ -311,55 +300,6 @@ export default function MainContent({ groups, publicEvents, loading, error }: Ma
         </>
       )}
 
-      {activeTab === 'calendar' && (
-        <>
-          {eventsLoading ? (
-            <Center style={{ minHeight: 400 }}>
-              <Stack align="center" gap="md">
-                <Loader size="lg" />
-                <Text>Loading calendar...</Text>
-              </Stack>
-            </Center>
-          ) : allEvents.length === 0 ? (
-            <Center style={{ minHeight: 400 }}>
-              <Stack align="center" gap="md">
-                <Text size="lg" c="dimmed">No events found</Text>
-                <Text size="sm" c="dimmed">
-                  {session ? 'Join groups or create public events to see them here!' : 'Sign in to see events from your groups!'}
-                </Text>
-              </Stack>
-            </Center>
-          ) : (
-            <>
-              {eventViewMode === 'list' ? (
-                <Grid gutter="lg">
-                  {allEvents.map((event) => (
-                    <Grid.Col key={event.id} span={{ base: 12, sm: 6, lg: 4 }}>
-                      <EventCard event={event} />
-                    </Grid.Col>
-                  ))}
-                </Grid>
-              ) : (
-                <Paper p="lg" withBorder>
-                  <EventCalendar
-                    events={allEvents.map(event => ({
-                      ...event,
-                      group: {
-                        id: event.group.id,
-                        title: event.group.title,
-                        location: event.group.location,
-                        creator: event.group.creator,
-                      },
-                    }))}
-                    onSelectEvent={(event) => handleEventClick(event.id)}
-                    height={600}
-                  />
-                </Paper>
-              )}
-            </>
-          )}
-        </>
-      )}
 
       {/* Create Group Modal */}
       <CreateGroupModal
@@ -372,8 +312,6 @@ export default function MainContent({ groups, publicEvents, loading, error }: Ma
         opened={eventDetailModalOpened}
         onClose={() => setEventDetailModalOpened(false)}
         eventId={selectedEventId}
-        onEventUpdated={handleEventUpdated}
-        onEventDeleted={handleEventDeleted}
       />
     </Box>
   );
