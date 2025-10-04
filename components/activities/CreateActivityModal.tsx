@@ -30,6 +30,7 @@ interface CreateActivityModalProps {
   groupLocation: string;
   onActivityCreated?: () => void;
   editingActivity?: any;
+  defaultStartDate?: Date;
 }
 
 interface ActivityFormData {
@@ -75,7 +76,8 @@ export default function CreateEventModal({
   groupTitle,
   groupLocation,
   onEventCreated,
-  editingEvent
+  editingEvent,
+  defaultStartDate
 }: CreateEventModalProps) {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const [formData, setFormData] = useState<EventFormData>({
@@ -86,7 +88,7 @@ export default function CreateEventModal({
   const [error, setError] = useState<string | null>(null);
   const [activeStep, setActiveStep] = useState(0);
 
-  // Populate form when editing
+  // Populate form when editing or when defaultStartDate is provided
   useEffect(() => {
     if (editingEvent) {
       setFormData({
@@ -107,9 +109,15 @@ export default function CreateEventModal({
         monthlyDay: null,
       });
     } else {
-      setFormData({ ...initialFormData, location: groupLocation });
+      // Use defaultStartDate if provided, otherwise use tomorrow
+      const startDate = defaultStartDate || new Date(Date.now() + 24 * 60 * 60 * 1000);
+      setFormData({
+        ...initialFormData,
+        location: groupLocation,
+        startDateTime: startDate
+      });
     }
-  }, [editingEvent, groupLocation]);
+  }, [editingEvent, groupLocation, defaultStartDate]);
 
   const updateFormData = (field: keyof EventFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));

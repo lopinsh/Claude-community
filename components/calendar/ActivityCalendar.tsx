@@ -29,16 +29,25 @@ interface ActivityCalendarProps {
   onEventClick?: (eventId: string) => void;
   onCellClick?: (date: Date) => void;
   defaultView?: 'month' | 'week' | 'day';
+  cellClickMode?: 'navigate' | 'create' | 'disabled';
 }
 
 export default function ActivityCalendar({
   events,
   onEventClick,
+  onCellClick,
   defaultView = 'month',
+  cellClickMode = 'disabled',
 }: ActivityCalendarProps) {
   const handleSelectEvent = (event: any) => {
     if (onEventClick) {
       onEventClick(event._originalEvent?.id || event.id);
+    }
+  };
+
+  const handleSelectSlot = (slotInfo: { start: Date; end: Date }) => {
+    if (onCellClick) {
+      onCellClick(slotInfo.start);
     }
   };
 
@@ -53,8 +62,9 @@ export default function ActivityCalendar({
     <LightweightCalendarWrapper
       events={events}
       onSelectEvent={handleSelectEvent}
-      onSelectSlot={() => {}}
+      onSelectSlot={handleSelectSlot}
       defaultView={viewMap[defaultView] || CurrentView.MONTH}
+      cellClickMode={cellClickMode}
     />
   );
 }

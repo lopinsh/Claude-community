@@ -32,11 +32,11 @@ import {
   IconAlertCircle
 } from '@tabler/icons-react'
 import { useSession } from 'next-auth/react'
-import Header from '@/components/layout/Header'
+import MainLayout from '@/components/layout/MainLayout'
 import GroupDetailSidebar from '@/components/sidebars/GroupDetailSidebar'
-import CreateEventModal from '@/components/events/CreateEventModal'
-// import EventCalendar from '@/components/events/EventCalendar' // TODO: Install react-lightweight-calendar
-import EventDetailModal from '@/components/events/EventDetailModal'
+import CreateActivityModal from '@/components/activities/CreateActivityModal'
+import ActivityCalendar from '@/components/calendar/ActivityCalendar'
+import ActivityDetailModal from '@/components/activities/ActivityDetailModal'
 import { useBreadcrumbs } from '@/hooks/useBreadcrumbs'
 
 interface Group {
@@ -81,6 +81,7 @@ export default function GroupDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [createEventModalOpened, setCreateEventModalOpened] = useState(false)
+  const [defaultStartDate, setDefaultStartDate] = useState<Date | undefined>(undefined)
   const [eventViewMode, setEventViewMode] = useState<'list' | 'calendar'>('list')
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
   const [eventDetailModalOpened, setEventDetailModalOpened] = useState(false)
@@ -134,6 +135,11 @@ export default function GroupDetailPage() {
     setEventDetailModalOpened(true)
   }
 
+  const handleCreateEventOnDate = (date: Date) => {
+    setDefaultStartDate(date)
+    setCreateEventModalOpened(true)
+  }
+
   const handleEventUpdated = () => {
     fetchGroup()
   }
@@ -144,8 +150,7 @@ export default function GroupDetailPage() {
 
   if (loading) {
     return (
-      <Box mih="100vh" bg={colorScheme === 'dark' ? 'dark.7' : 'gray.0'}>
-        <Header />
+      <MainLayout>
         <Box style={{ display: 'flex' }}>
           <Container size="lg" py="xl" style={{ flex: 1 }}>
             <Center>
@@ -156,14 +161,13 @@ export default function GroupDetailPage() {
             </Center>
           </Container>
         </Box>
-      </Box>
+      </MainLayout>
     )
   }
 
   if (error || !group) {
     return (
-      <Box mih="100vh" bg={colorScheme === 'dark' ? 'dark.7' : 'gray.0'}>
-        <Header />
+      <MainLayout>
         <Box style={{ display: 'flex' }}>
           <Container size="lg" py="xl" style={{ flex: 1 }}>
             <Alert icon={<IconAlertCircle size={16} />} color="red">
@@ -172,7 +176,7 @@ export default function GroupDetailPage() {
             </Alert>
           </Container>
         </Box>
-      </Box>
+      </MainLayout>
     )
   }
 
@@ -186,9 +190,7 @@ export default function GroupDetailPage() {
   }
 
   return (
-    <Box mih="100vh" bg={colorScheme === 'dark' ? 'dark.7' : 'gray.0'}>
-      <Header />
-
+    <MainLayout>
       <Box style={{ display: 'flex' }}>
         <GroupDetailSidebar
           group={group}
@@ -301,7 +303,7 @@ export default function GroupDetailPage() {
           <Paper p="lg" withBorder>
             <Stack gap="md">
               <Group justify="space-between">
-                <Title order={3}>Events</Title>
+                <Title order={3}>Activities</Title>
                 <Group gap="sm">
                   <Button.Group>
                     <Button
@@ -332,23 +334,23 @@ export default function GroupDetailPage() {
                 </Group>
               </Group>
 
-              {group.events.length === 0 ? (
-                <Center py="xl">
-                  <Stack align="center" gap="md">
-                    <ThemeIcon size="xl" variant="light" color="gray">
-                      <IconCalendar size={24} />
-                    </ThemeIcon>
-                    <Text size="lg" c="dimmed">No events scheduled yet</Text>
-                    {isOwner && (
-                      <Text size="sm" c="dimmed">
-                        Create your first event to get started!
-                      </Text>
-                    )}
-                  </Stack>
-                </Center>
-              ) : (
+              {eventViewMode === 'list' ? (
                 <>
-                  {eventViewMode === 'list' ? (
+                  {group.events.length === 0 ? (
+                    <Center py="xl">
+                      <Stack align="center" gap="md">
+                        <ThemeIcon size="xl" variant="light" color="gray">
+                          <IconCalendar size={24} />
+                        </ThemeIcon>
+                        <Text size="lg" c="dimmed">No events scheduled yet</Text>
+                        {isOwner && (
+                          <Text size="sm" c="dimmed">
+                            Create your first event to get started!
+                          </Text>
+                        )}
+                      </Stack>
+                    </Center>
+                  ) : (
                     <Stack gap="sm">
                       {group.events.map((event) => (
                         <Card key={event.id} withBorder p="md" style={{ cursor: 'pointer', transition: theme.other.transition }} onClick={() => handleEventClick(event.id)}>
@@ -387,19 +389,35 @@ export default function GroupDetailPage() {
                         </Card>
                       ))}
                     </Stack>
-                  ) : (
-                    <Card p="xl" radius="md" withBorder>
-                      <Stack align="center" gap="md">
-                        <Text size="lg" fw={500} c="dimmed">
-                          Calendar view temporarily disabled
-                        </Text>
-                        <Text size="sm" c="dimmed" ta="center">
-                          Please use list view for now
-                        </Text>
-                      </Stack>
-                    </Card>
                   )}
                 </>
+              ) : (
+                <Stack gap="xs">
+                  <ActivityCalendar
+                    events={group.events.map(event => ({
+                      ...event,
+                      location: event.location || group.location,
+                      group: {
+                        id: group.id,
+                        title: group.title,
+                        location: group.location,
+                      },
+                      _count: {
+                        attendees: 0,
+                      },
+                    }))}
+                    onEventClick={handleEventClick}
+                    onCellClick={isOwner ? handleCreateEventOnDate : undefined}
+                    cellClickMode={isOwner ? 'create' : 'navigate'}
+                  />
+                  {group.events.length === 0 && (
+                    <Text size="sm" c="dimmed" ta="center" mt="sm">
+                      {isOwner
+                        ? "Click any date on the calendar to create your first event!"
+                        : "No events scheduled yet"}
+                    </Text>
+                  )}
+                </Stack>
               )}
             </Stack>
           </Paper>
@@ -415,20 +433,24 @@ export default function GroupDetailPage() {
             </Stack>
           </Paper>
 
-          {/* Event Creation Modal */}
+          {/* Activity Creation Modal */}
           {group && (
-            <CreateEventModal
+            <CreateActivityModal
               opened={createEventModalOpened}
-              onClose={() => setCreateEventModalOpened(false)}
+              onClose={() => {
+                setCreateEventModalOpened(false)
+                setDefaultStartDate(undefined)
+              }}
               groupId={group.id}
               groupTitle={group.title}
               groupLocation={group.location}
-              onEventCreated={handleEventCreated}
+              onActivityCreated={handleEventCreated}
+              defaultStartDate={defaultStartDate}
             />
           )}
 
-          {/* Event Detail Modal */}
-          <EventDetailModal
+          {/* Activity Detail Modal */}
+          <ActivityDetailModal
             opened={eventDetailModalOpened}
             onClose={() => setEventDetailModalOpened(false)}
             eventId={selectedEventId}
@@ -438,6 +460,6 @@ export default function GroupDetailPage() {
         </Stack>
         </Container>
       </Box>
-    </Box>
+    </MainLayout>
   )
 }

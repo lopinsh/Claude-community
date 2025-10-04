@@ -76,6 +76,7 @@ interface LightweightCalendarWrapperProps {
   onSelectEvent?: (event: CalendarEvent) => void;
   onSelectSlot?: (slotInfo: { start: Date; end: Date }) => void;
   defaultView?: CurrentView;
+  cellClickMode?: 'navigate' | 'create' | 'disabled';
 }
 
 export default function LightweightCalendarWrapper({
@@ -83,6 +84,7 @@ export default function LightweightCalendarWrapper({
   onSelectEvent,
   onSelectSlot,
   defaultView = CurrentView.MONTH,
+  cellClickMode = 'disabled',
 }: LightweightCalendarWrapperProps) {
   const theme = useMantineTheme();
   const { colorScheme } = useMantineColorScheme();
@@ -287,13 +289,24 @@ export default function LightweightCalendarWrapper({
     }
   };
 
-  // Handle cell click for creating events
+  // Handle cell click for navigation or creating events
   const onCellClick = (value: any) => {
-    if (onSelectSlot) {
+    // Navigate mode: Switch to day view on month/week cell clicks
+    if (cellClickMode === 'navigate' && (currentView === CurrentView.MONTH || currentView === CurrentView.WEEK)) {
+      setCurrentDate(value.date || value.timeDate.split('T')[0]);
+      setCurrentView(CurrentView.DAY);
+      return;
+    }
+
+    // Create mode: Open create event modal with pre-filled time
+    if (cellClickMode === 'create' && onSelectSlot) {
       const start = new Date(value.timeDate);
       const end = new Date(start.getTime() + 60 * 60 * 1000); // 1 hour later
       onSelectSlot({ start, end });
+      return;
     }
+
+    // Disabled mode or day/timeline views: Do nothing
   };
 
   // Apply dark mode styles via CSS custom properties

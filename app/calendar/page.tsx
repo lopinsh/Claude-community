@@ -97,11 +97,6 @@ export default function CalendarPage() {
     setEventDetailModal(true);
   };
 
-  const handleSelectSlot = (slotInfo: { start: Date; end: Date }) => {
-    // Could open create event modal here
-    console.log('Selected slot:', slotInfo);
-  };
-
   // Filter events based on active tab and filters
   const filteredEvents = events.filter(event => {
     // Tab filtering
@@ -214,8 +209,8 @@ export default function CalendarPage() {
               <LightweightCalendarWrapper
                 events={filteredEvents}
                 onSelectEvent={handleSelectEvent}
-                onSelectSlot={handleSelectSlot}
                 defaultView={CurrentView.MONTH}
+                cellClickMode="navigate"
               />
             )}
           </Paper>
