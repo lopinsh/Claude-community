@@ -23,6 +23,7 @@ import { IconPlus, IconUsers, IconSearch, IconCalendarEvent, IconUserPlus, IconS
 import GroupCard from '@/components/groups/GroupCard';
 import GroupCompactView from '@/components/groups/GroupCompactView';
 import CreateGroupModal from '@/components/groups/CreateGroupModal';
+import { GroupCardSkeleton, ListSkeleton } from '@/components/common';
 
 interface Group {
   id: string;
@@ -97,13 +98,10 @@ export default function MainContent({ groups, loading, error, searchQuery, onSea
 
   if (loading) {
     return (
-      <Box p="xl">
-        <Center style={{ minHeight: 400 }}>
-          <Stack align="center" gap="md">
-            <Loader size="lg" />
-            <Text size="lg" c="dimmed">Loading activities...</Text>
-          </Stack>
-        </Center>
+      <Box p="xl" w="100%">
+        <ListSkeleton count={6} columns={{ base: 1, sm: 2, lg: 3 }}>
+          <GroupCardSkeleton />
+        </ListSkeleton>
       </Box>
     );
   }

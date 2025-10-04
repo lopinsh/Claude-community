@@ -18,6 +18,7 @@ import {
   useMantineTheme
 } from '@mantine/core'
 import { IconSparkles, IconCalendar, IconUser } from '@tabler/icons-react'
+import Image from 'next/image'
 import MainLayout from '@/components/layout/MainLayout'
 import Link from 'next/link'
 
@@ -101,14 +102,22 @@ export default function StoriesPage() {
                   <Stack gap="md">
                     {article.featuredImage && (
                       <Box
+                        pos="relative"
                         h={200}
                         style={{
-                          backgroundImage: `url(${article.featuredImage})`,
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center',
                           borderRadius: theme.radius.md,
+                          overflow: 'hidden',
                         }}
-                      />
+                      >
+                        <Image
+                          src={article.featuredImage}
+                          alt={article.title}
+                          fill
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 768px"
+                          style={{ objectFit: 'cover' }}
+                          loading="lazy"
+                        />
+                      </Box>
                     )}
 
                     <Stack gap="xs">

@@ -92,9 +92,9 @@ export default function NotificationBell() {
     }
 
     fetchUnreadCount()
-    
-    // Poll every 30 seconds for new notifications
-    const interval = setInterval(fetchUnreadCount, 30000)
+
+    // Poll every 60 seconds for new notifications
+    const interval = setInterval(fetchUnreadCount, 60000)
     return () => clearInterval(interval)
   }, [session])
 

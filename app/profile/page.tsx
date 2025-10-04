@@ -22,6 +22,7 @@ import {
   Divider,
   ActionIcon
 } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import MainLayout from '@/components/layout/MainLayout';
@@ -65,6 +66,7 @@ const ACTIVITY_TYPES: { [key: string]: { label: string; color: string; icon: str
 export default function ProfilePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -155,10 +157,12 @@ export default function ProfilePage() {
     return (
       <MainLayout>
         <div style={{ display: 'flex' }}>
-          <ProfileSidebar
-            isCollapsed={sidebarCollapsed}
-            onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-          />
+          {!isMobile && (
+            <ProfileSidebar
+              isCollapsed={sidebarCollapsed}
+              onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+            />
+          )}
           <Center style={{ flex: 1, minHeight: '50vh' }}>
             <Stack align="center">
               <Loader size="lg" />
@@ -174,12 +178,19 @@ export default function ProfilePage() {
     return (
       <MainLayout>
         <div style={{ display: 'flex' }}>
-          <ProfileSidebar
-            isCollapsed={sidebarCollapsed}
-            onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-          />
+          {!isMobile && (
+            <ProfileSidebar
+              isCollapsed={sidebarCollapsed}
+              onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+            />
+          )}
           <Container size="md" py="xl" style={{ flex: 1 }}>
-            <Card shadow="lg" radius="lg" p="xl">
+            <Card
+              shadow={isMobile ? 'none' : 'lg'}
+              radius={isMobile ? 0 : 'lg'}
+              p="xl"
+              withBorder={!isMobile}
+            >
               <Center>
                 <Stack align="center">
                   <Text size="4rem">😕</Text>
@@ -197,23 +208,31 @@ export default function ProfilePage() {
   return (
     <MainLayout>
       <div style={{ display: 'flex' }}>
-        <ProfileSidebar
-          isCollapsed={sidebarCollapsed}
-          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-        />
+        {!isMobile && (
+          <ProfileSidebar
+            isCollapsed={sidebarCollapsed}
+            onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          />
+        )}
 
-        <Container size="lg" py="xl" style={{ flex: 1 }}>
+        <Container size="lg" py={isMobile ? 'md' : 'xl'} style={{ flex: 1 }}>
         <Grid>
           {/* Profile Info Card */}
           <Grid.Col span={{ base: 12, md: 4 }}>
-            <Card shadow="lg" radius="lg" p="xl" h="fit-content">
+            <Card
+              shadow={isMobile ? 'none' : 'lg'}
+              radius={isMobile ? 0 : 'lg'}
+              p={isMobile ? 'lg' : 'xl'}
+              h="fit-content"
+              withBorder={!isMobile}
+            >
               <Stack align="center" gap="lg">
-                <Avatar size={120} />
-                
+                <Avatar size={isMobile ? 100 : 120} />
+
                 <div style={{ textAlign: 'center' }}>
                   <Title order={2}>{profile.name || 'Anonymous'}</Title>
                   <Text c="dimmed" size="sm">{profile.email}</Text>
-                  
+
                   {profile.location && (
                     <Group justify="center" mt="sm">
                       <Text size="sm">📍</Text>
@@ -223,17 +242,19 @@ export default function ProfilePage() {
                     </Group>
                   )}
                 </div>
-                
+
                 {profile.bio && (
                   <Text size="sm" ta="center" style={{ fontStyle: 'italic' }}>
                     "{profile.bio}"
                   </Text>
                 )}
-                
-                <Button 
-                  fullWidth 
+
+                <Button
+                  fullWidth
                   variant={editing ? "outline" : "filled"}
                   onClick={() => setEditing(!editing)}
+                  size={isMobile ? 'md' : 'sm'}
+                  style={{ minHeight: isMobile ? '48px' : undefined }}
                 >
                   {editing ? 'Cancel Edit' : 'Edit Profile'}
                 </Button>
@@ -246,43 +267,55 @@ export default function ProfilePage() {
             <Stack gap="lg">
               {/* Edit Profile Form */}
               {editing && (
-                <Card shadow="lg" radius="lg" p="xl">
+                <Card
+                  shadow={isMobile ? 'none' : 'lg'}
+                  radius={isMobile ? 0 : 'lg'}
+                  p={isMobile ? 'lg' : 'xl'}
+                  withBorder={!isMobile}
+                >
                   <Title order={3} mb="lg">Edit Profile</Title>
-                  
+
                   <form onSubmit={form.onSubmit(handleSave)}>
                     <Stack gap="md">
                       <TextInput
                         label="Full Name"
                         placeholder="Your full name"
+                        size={isMobile ? 'md' : 'sm'}
                         {...form.getInputProps('name')}
                       />
-                      
+
                       <Select
                         label="Location"
                         placeholder="Select your city"
                         data={LATVIAN_CITIES}
+                        size={isMobile ? 'md' : 'sm'}
                         {...form.getInputProps('location')}
                         searchable
                       />
-                      
+
                       <Textarea
                         label="Bio"
                         placeholder="Tell us about yourself..."
                         minRows={3}
                         maxRows={6}
+                        size={isMobile ? 'md' : 'sm'}
                         {...form.getInputProps('bio')}
                       />
-                      
-                      <Group justify="flex-end" mt="lg">
+
+                      <Group justify={isMobile ? 'stretch' : 'flex-end'} mt="lg">
                         <Button
                           variant="outline"
                           onClick={() => setEditing(false)}
+                          size={isMobile ? 'md' : 'sm'}
+                          style={{ minHeight: isMobile ? '48px' : undefined, flex: isMobile ? 1 : undefined }}
                         >
                           Cancel
                         </Button>
                         <Button
                           type="submit"
                           loading={saving}
+                          size={isMobile ? 'md' : 'sm'}
+                          style={{ minHeight: isMobile ? '48px' : undefined, flex: isMobile ? 1 : undefined }}
                         >
                           Save Changes
                         </Button>
@@ -293,15 +326,26 @@ export default function ProfilePage() {
               )}
 
               {/* My Activities */}
-              <Card shadow="lg" radius="lg" p="xl">
+              <Card
+                shadow={isMobile ? 'none' : 'lg'}
+                radius={isMobile ? 0 : 'lg'}
+                p={isMobile ? 'lg' : 'xl'}
+                withBorder={!isMobile}
+              >
                 <Title order={3} mb="lg">My Activities</Title>
-                
+
                 {profile.activities.length === 0 ? (
                   <Center py="xl">
                     <Stack align="center">
                       <Text size="3rem">🎭</Text>
                       <Text c="dimmed">You haven't joined any activities yet</Text>
-                      <Button component="a" href="/activities" mt="md">
+                      <Button
+                        component="a"
+                        href="/activities"
+                        mt="md"
+                        size={isMobile ? 'md' : 'sm'}
+                        style={{ minHeight: isMobile ? '48px' : undefined }}
+                      >
                         Browse Activities
                       </Button>
                     </Stack>
@@ -310,7 +354,7 @@ export default function ProfilePage() {
                   <Stack gap="md">
                     {profile.activities.map((activity) => (
                       <Card key={activity.id} padding="md" radius="md" withBorder>
-                        <Group justify="space-between">
+                        <Group justify="space-between" wrap={isMobile ? 'wrap' : 'nowrap'}>
                           <Group>
                             <Badge
                               color="blue"
@@ -323,10 +367,11 @@ export default function ProfilePage() {
                           </Group>
 
                           <Button
-                            size="sm"
+                            size={isMobile ? 'sm' : 'sm'}
                             variant="outline"
                             component="a"
                             href={`/activities/${activity.id}`}
+                            style={{ minHeight: isMobile ? '44px' : undefined }}
                           >
                             View
                           </Button>

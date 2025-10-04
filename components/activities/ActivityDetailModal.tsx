@@ -20,6 +20,7 @@ import {
   Tooltip,
   ScrollArea
 } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import {
   IconCalendar,
   IconMapPin,
@@ -86,6 +87,7 @@ export default function EventDetailModal({
   onEventDeleted
 }: EventDetailModalProps) {
   const { data: session } = useSession();
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -204,7 +206,8 @@ export default function EventDetailModal({
         onClose={onClose}
         title="Event Details"
         size="lg"
-        centered
+        centered={!isMobile}
+        fullScreen={isMobile}
         scrollAreaComponent={ScrollArea.Autosize}
       >
         {loading && (
@@ -330,38 +333,79 @@ export default function EventDetailModal({
             {canRSVP && (
               <Stack gap="md">
                 <Title order={5}>Will you attend?</Title>
-                <Group gap="sm">
-                  <Button
-                    variant={userAttendance === 'GOING' ? 'filled' : 'outline'}
-                    color="green"
-                    leftSection={<IconCheck size={16} />}
-                    onClick={() => handleRSVP('GOING')}
-                    loading={rsvpLoading}
-                    size="sm"
-                  >
-                    Going
-                  </Button>
-                  <Button
-                    variant={userAttendance === 'MAYBE' ? 'filled' : 'outline'}
-                    color="yellow"
-                    leftSection={<IconQuestionMark size={16} />}
-                    onClick={() => handleRSVP('MAYBE')}
-                    loading={rsvpLoading}
-                    size="sm"
-                  >
-                    Maybe
-                  </Button>
-                  <Button
-                    variant={userAttendance === 'NOT_GOING' ? 'filled' : 'outline'}
-                    color="red"
-                    leftSection={<IconX size={16} />}
-                    onClick={() => handleRSVP('NOT_GOING')}
-                    loading={rsvpLoading}
-                    size="sm"
-                  >
-                    Can't go
-                  </Button>
-                </Group>
+                {isMobile ? (
+                  <Stack gap="sm">
+                    <Button
+                      fullWidth
+                      variant={userAttendance === 'GOING' ? 'filled' : 'outline'}
+                      color="green"
+                      leftSection={<IconCheck size={18} />}
+                      onClick={() => handleRSVP('GOING')}
+                      loading={rsvpLoading}
+                      size="md"
+                      style={{ minHeight: '48px' }}
+                    >
+                      Going
+                    </Button>
+                    <Button
+                      fullWidth
+                      variant={userAttendance === 'MAYBE' ? 'filled' : 'outline'}
+                      color="yellow"
+                      leftSection={<IconQuestionMark size={18} />}
+                      onClick={() => handleRSVP('MAYBE')}
+                      loading={rsvpLoading}
+                      size="md"
+                      style={{ minHeight: '48px' }}
+                    >
+                      Maybe
+                    </Button>
+                    <Button
+                      fullWidth
+                      variant={userAttendance === 'NOT_GOING' ? 'filled' : 'outline'}
+                      color="red"
+                      leftSection={<IconX size={18} />}
+                      onClick={() => handleRSVP('NOT_GOING')}
+                      loading={rsvpLoading}
+                      size="md"
+                      style={{ minHeight: '48px' }}
+                    >
+                      Can't go
+                    </Button>
+                  </Stack>
+                ) : (
+                  <Group gap="sm">
+                    <Button
+                      variant={userAttendance === 'GOING' ? 'filled' : 'outline'}
+                      color="green"
+                      leftSection={<IconCheck size={16} />}
+                      onClick={() => handleRSVP('GOING')}
+                      loading={rsvpLoading}
+                      size="sm"
+                    >
+                      Going
+                    </Button>
+                    <Button
+                      variant={userAttendance === 'MAYBE' ? 'filled' : 'outline'}
+                      color="yellow"
+                      leftSection={<IconQuestionMark size={16} />}
+                      onClick={() => handleRSVP('MAYBE')}
+                      loading={rsvpLoading}
+                      size="sm"
+                    >
+                      Maybe
+                    </Button>
+                    <Button
+                      variant={userAttendance === 'NOT_GOING' ? 'filled' : 'outline'}
+                      color="red"
+                      leftSection={<IconX size={16} />}
+                      onClick={() => handleRSVP('NOT_GOING')}
+                      loading={rsvpLoading}
+                      size="sm"
+                    >
+                      Can't go
+                    </Button>
+                  </Group>
+                )}
                 {userAttendance && (
                   <Text size="sm" c="dimmed">
                     Your response: <strong>{userAttendance.replace('_', ' ')}</strong>
@@ -381,10 +425,10 @@ export default function EventDetailModal({
                     <IconCheck size={16} color="var(--mantine-color-green-6)" />
                     <Text size="sm" fw={500} c="green">Going ({attendeesByStatus.GOING.length})</Text>
                   </Group>
-                  <Group gap="xs" wrap="wrap">
+                  <Group gap={isMobile ? 'md' : 'xs'} wrap="wrap">
                     {attendeesByStatus.GOING.map((attendee) => (
                       <Group key={attendee.id} gap="xs">
-                        <Avatar size="sm" radius="xl">
+                        <Avatar size={isMobile ? 'md' : 'sm'} radius="xl">
                           {attendee.user.name?.charAt(0) || 'U'}
                         </Avatar>
                         <Text size="sm">{attendee.user.name || 'Anonymous'}</Text>
@@ -400,10 +444,10 @@ export default function EventDetailModal({
                     <IconQuestionMark size={16} color="var(--mantine-color-yellow-6)" />
                     <Text size="sm" fw={500} c="yellow">Maybe ({attendeesByStatus.MAYBE.length})</Text>
                   </Group>
-                  <Group gap="xs" wrap="wrap">
+                  <Group gap={isMobile ? 'md' : 'xs'} wrap="wrap">
                     {attendeesByStatus.MAYBE.map((attendee) => (
                       <Group key={attendee.id} gap="xs">
-                        <Avatar size="sm" radius="xl">
+                        <Avatar size={isMobile ? 'md' : 'sm'} radius="xl">
                           {attendee.user.name?.charAt(0) || 'U'}
                         </Avatar>
                         <Text size="sm">{attendee.user.name || 'Anonymous'}</Text>
@@ -452,15 +496,26 @@ export default function EventDetailModal({
         opened={deleteModalOpened}
         onClose={() => setDeleteModalOpened(false)}
         title="Delete Event"
-        centered
+        centered={!isMobile}
+        fullScreen={isMobile}
       >
         <Stack gap="md">
           <Text>Are you sure you want to delete this event? This action cannot be undone.</Text>
-          <Group justify="flex-end" gap="sm">
-            <Button variant="outline" onClick={() => setDeleteModalOpened(false)}>
+          <Group justify={isMobile ? 'stretch' : 'flex-end'} gap="sm">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteModalOpened(false)}
+              size={isMobile ? 'md' : 'sm'}
+              style={{ minHeight: isMobile ? '48px' : undefined, flex: isMobile ? 1 : undefined }}
+            >
               Cancel
             </Button>
-            <Button color="red" onClick={handleDeleteEvent}>
+            <Button
+              color="red"
+              onClick={handleDeleteEvent}
+              size={isMobile ? 'md' : 'sm'}
+              style={{ minHeight: isMobile ? '48px' : undefined, flex: isMobile ? 1 : undefined }}
+            >
               Delete Event
             </Button>
           </Group>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
+import { denormalizeCategoryNames } from '@/lib/tagUtils'
 import { z } from 'zod'
 
 // Schema for creating a group
@@ -19,9 +20,13 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100) // Cap at 100
     const search = searchParams.get('search')
     const groupType = searchParams.get('groupType')
+    const categoriesParam = searchParams.get('categories')
+    const level2Param = searchParams.get('level2')
+    const level3Param = searchParams.get('level3')
+    const location = searchParams.get('location')
 
     const skip = (page - 1) * limit
 
@@ -39,6 +44,68 @@ export async function GET(request: NextRequest) {
 
     if (groupType) {
       where.groupType = groupType
+    }
+
+    // Location filtering
+    if (location) {
+      where.location = {
+        contains: location,
+        mode: 'insensitive',
+      }
+    }
+
+    // Tag filtering
+    const tagFilters: any[] = []
+
+    if (categoriesParam) {
+      const normalizedCategories = categoriesParam.split(',')
+      // Convert normalized names (e.g., "skill-craft") to actual database names (e.g., "Skill & Craft")
+      const actualCategories = await denormalizeCategoryNames(normalizedCategories)
+
+      if (actualCategories.length > 0) {
+        tagFilters.push({
+          tags: {
+            some: {
+              tag: {
+                name: {
+                  in: actualCategories,
+                },
+              },
+            },
+          },
+        })
+      }
+    }
+
+    if (level2Param) {
+      const level2Ids = level2Param.split(',')
+      tagFilters.push({
+        tags: {
+          some: {
+            tagId: {
+              in: level2Ids,
+            },
+          },
+        },
+      })
+    }
+
+    if (level3Param) {
+      const level3Ids = level3Param.split(',')
+      tagFilters.push({
+        tags: {
+          some: {
+            tagId: {
+              in: level3Ids,
+            },
+          },
+        },
+      })
+    }
+
+    // Apply tag filters
+    if (tagFilters.length > 0) {
+      where.AND = tagFilters
     }
 
     const groups = await prisma.group.findMany({

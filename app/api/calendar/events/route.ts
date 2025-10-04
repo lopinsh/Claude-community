@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
+import { denormalizeCategoryNames } from '@/lib/tagUtils';
 
 // GET - Get calendar events (public events + user's group events)
 export async function GET(request: NextRequest) {
@@ -64,18 +65,23 @@ export async function GET(request: NextRequest) {
     const tagFilters: any[] = [];
 
     if (categoriesParam) {
-      const categories = categoriesParam.split(',');
-      tagFilters.push({
-        tags: {
-          some: {
-            tag: {
-              name: {
-                in: categories,
+      const normalizedCategories = categoriesParam.split(',');
+      // Convert normalized names (e.g., "skill-craft") to actual database names (e.g., "Skill & Craft")
+      const actualCategories = await denormalizeCategoryNames(normalizedCategories);
+
+      if (actualCategories.length > 0) {
+        tagFilters.push({
+          tags: {
+            some: {
+              tag: {
+                name: {
+                  in: actualCategories,
+                },
               },
             },
           },
-        },
-      });
+        });
+      }
     }
 
     if (level2Param) {

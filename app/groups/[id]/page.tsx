@@ -22,6 +22,7 @@ import {
   useMantineTheme,
   useMantineColorScheme
 } from '@mantine/core'
+import { useMediaQuery } from '@mantine/hooks'
 import {
   IconUsers,
   IconMapPin,
@@ -77,6 +78,7 @@ export default function GroupDetailPage() {
   const theme = useMantineTheme()
   const { colorScheme } = useMantineColorScheme()
   const { data: session } = useSession()
+  const isMobile = useMediaQuery('(max-width: 768px)')
   const [group, setGroup] = useState<Group | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -192,17 +194,24 @@ export default function GroupDetailPage() {
   return (
     <MainLayout>
       <Box style={{ display: 'flex' }}>
-        <GroupDetailSidebar
-          group={group}
-          currentUserId={session?.user?.id}
-          isCollapsed={sidebarCollapsed}
-          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-        />
+        {!isMobile && (
+          <GroupDetailSidebar
+            group={group}
+            currentUserId={session?.user?.id}
+            isCollapsed={sidebarCollapsed}
+            onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          />
+        )}
 
-        <Container size="lg" py="xl" style={{ flex: 1 }}>
-        <Stack gap="lg">
+        <Container size="lg" py={isMobile ? 'md' : 'xl'} style={{ flex: 1 }} pb={isMobile ? 100 : undefined}>
+        <Stack gap={isMobile ? 'md' : 'lg'}>
           {/* Group Header */}
-          <Paper p="xl" withBorder>
+          <Paper
+            p={isMobile ? 'lg' : 'xl'}
+            withBorder={!isMobile}
+            shadow={isMobile ? 'none' : undefined}
+            radius={isMobile ? 0 : undefined}
+          >
             <Stack gap="md">
               <Group justify="space-between" align="flex-start">
                 <Stack gap="xs" flex={1}>
@@ -218,7 +227,7 @@ export default function GroupDetailPage() {
                   )}
                 </Stack>
 
-                {isOwner && (
+                {isOwner && !isMobile && (
                   <Button
                     variant="light"
                     leftSection={<IconEdit size={16} />}
@@ -286,11 +295,11 @@ export default function GroupDetailPage() {
               <Divider />
 
               {/* Creator Info */}
-              <Group justify="space-between">
+              <Group justify="space-between" wrap={isMobile ? 'wrap' : 'nowrap'}>
                 <Text size="xs" c="dimmed">
                   Created by {group.creator.name} on {new Date(group.createdAt).toLocaleDateString()}
                 </Text>
-                {!isOwner && (
+                {!isOwner && !isMobile && (
                   <Button size="sm" disabled>
                     Join Group
                   </Button>
@@ -300,28 +309,35 @@ export default function GroupDetailPage() {
           </Paper>
 
           {/* Events Section */}
-          <Paper p="lg" withBorder>
+          <Paper
+            p={isMobile ? 'lg' : 'lg'}
+            withBorder={!isMobile}
+            shadow={isMobile ? 'none' : undefined}
+            radius={isMobile ? 0 : undefined}
+          >
             <Stack gap="md">
-              <Group justify="space-between">
+              <Group justify="space-between" wrap={isMobile ? 'wrap' : 'nowrap'}>
                 <Title order={3}>Activities</Title>
                 <Group gap="sm">
                   <Button.Group>
                     <Button
                       variant={eventViewMode === 'list' ? 'filled' : 'outline'}
                       onClick={() => setEventViewMode('list')}
-                      size="xs"
+                      size={isMobile ? 'sm' : 'xs'}
+                      style={{ minHeight: isMobile ? '44px' : undefined }}
                     >
                       List
                     </Button>
                     <Button
                       variant={eventViewMode === 'calendar' ? 'filled' : 'outline'}
                       onClick={() => setEventViewMode('calendar')}
-                      size="xs"
+                      size={isMobile ? 'sm' : 'xs'}
+                      style={{ minHeight: isMobile ? '44px' : undefined }}
                     >
                       Calendar
                     </Button>
                   </Button.Group>
-                  {isOwner && (
+                  {isOwner && !isMobile && (
                     <Button
                       size="sm"
                       variant="light"
@@ -423,7 +439,12 @@ export default function GroupDetailPage() {
           </Paper>
 
           {/* Members Section */}
-          <Paper p="lg" withBorder>
+          <Paper
+            p={isMobile ? 'lg' : 'lg'}
+            withBorder={!isMobile}
+            shadow={isMobile ? 'none' : undefined}
+            radius={isMobile ? 0 : undefined}
+          >
             <Stack gap="md">
               <Title order={3}>Members ({group._count.applications})</Title>
 
@@ -432,6 +453,43 @@ export default function GroupDetailPage() {
               </Center>
             </Stack>
           </Paper>
+
+          {/* Mobile Sticky Action Button */}
+          {isMobile && (
+            <Box
+              style={{
+                position: 'fixed',
+                bottom: 70,
+                left: 0,
+                right: 0,
+                padding: '16px',
+                backgroundColor: colorScheme === 'dark' ? theme.colors.dark[7] : theme.white,
+                borderTop: `1px solid ${colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors.gray[3]}`,
+                zIndex: 100,
+              }}
+            >
+              {isOwner ? (
+                <Button
+                  fullWidth
+                  size="lg"
+                  leftSection={<IconPlus size={20} />}
+                  onClick={() => setCreateEventModalOpened(true)}
+                  style={{ minHeight: '48px' }}
+                >
+                  Create Event
+                </Button>
+              ) : (
+                <Button
+                  fullWidth
+                  size="lg"
+                  disabled
+                  style={{ minHeight: '48px' }}
+                >
+                  Join Group
+                </Button>
+              )}
+            </Box>
+          )}
 
           {/* Activity Creation Modal */}
           {group && (

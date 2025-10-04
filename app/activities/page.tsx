@@ -382,6 +382,6 @@ export default function ActivitiesPage() {
           </Stack>
         )}
       </Modal>
-    </div>
+    </MainLayout>
   );
 }

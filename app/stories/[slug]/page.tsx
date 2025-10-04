@@ -16,6 +16,7 @@ import {
   useMantineColorScheme,
 } from '@mantine/core';
 import { IconCalendar, IconUser } from '@tabler/icons-react';
+import Image from 'next/image';
 import Header from '@/components/layout/Header';
 import { getRoleBadge } from '@/lib/authorization';
 
@@ -89,14 +90,22 @@ export default function StoryArticlePage() {
           {/* Featured Image */}
           {article.featuredImage && (
             <Box
+              pos="relative"
               h={400}
               style={{
-                backgroundImage: `url(${article.featuredImage})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
                 borderRadius: '12px',
+                overflow: 'hidden',
               }}
-            />
+            >
+              <Image
+                src={article.featuredImage}
+                alt={article.title}
+                fill
+                sizes="(max-width: 768px) 100vw, 768px"
+                style={{ objectFit: 'cover' }}
+                priority
+              />
+            </Box>
           )}
 
           {/* Article Header */}

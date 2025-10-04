@@ -1,7 +1,8 @@
-import { Card, Group, Text, Badge, Stack, Box, Image, useMantineTheme, useMantineColorScheme } from '@mantine/core'
+import { Card, Group, Text, Badge, Stack, Box, useMantineTheme, useMantineColorScheme } from '@mantine/core'
 import { IconUsers, IconCalendar, IconMapPin } from '@tabler/icons-react'
 import { useMediaQuery } from '@mantine/hooks'
 import Link from 'next/link'
+import Image from 'next/image'
 import { getCardBorderStyle, getTagParentColor } from '@/utils/categoryColors'
 import TagBadge from '@/components/common/TagBadge'
 import { useState } from 'react'
@@ -125,12 +126,14 @@ export default function GroupCard({ group }: GroupCardProps) {
       )}
       {/* Image */}
       <Card.Section>
-        <Box pos="relative">
+        <Box pos="relative" h={isMobile ? 180 : 160}>
           <Image
             src={placeholderImage}
             alt={group.title}
-            h={100}
-            fallbackSrc="https://placehold.co/400x200?text=No+Image"
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            style={{ objectFit: 'cover' }}
+            priority={false}
           />
           <Badge
             pos="absolute"
@@ -139,6 +142,7 @@ export default function GroupCard({ group }: GroupCardProps) {
             variant="filled"
             color={group.groupType === 'SINGLE_EVENT' ? 'categoryOrange' : 'categoryTeal'}
             size="xs"
+            style={{ zIndex: 1 }}
           >
             {group.groupType === 'SINGLE_EVENT' ? 'EVENT' : 'GROUP'}
           </Badge>

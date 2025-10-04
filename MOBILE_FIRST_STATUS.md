@@ -44,102 +44,86 @@ Comprehensive mobile optimization of the Latvian Community Platform with focus o
 - ✅ Sign Up page mobile optimization
   - ✅ Same patterns as Sign In
   - ✅ Consistent mobile styling
+- ✅ Profile Edit form optimization
+  - ✅ Mobile-responsive with sidebar hidden
+  - ✅ Touch-friendly inputs (size="md", 48px buttons)
+  - ✅ Full-width stacked buttons on mobile
+  - ✅ Mobile-optimized cards (no decorations)
+
+### Phase 5: Detail Pages (✅ Complete)
+- ✅ Group Detail Page (`/groups/[id]/page.tsx`)
+  - ✅ Mobile header optimization
+  - ✅ Sticky bottom action button (Join/Create Event)
+  - ✅ Touch-optimized view toggle (44px buttons)
+  - ✅ Sidebar hidden on mobile
+  - ✅ Bottom padding for sticky button
+- ✅ Event Detail Modal (`ActivityDetailModal.tsx`)
+  - ✅ Full-screen modal on mobile
+  - ✅ Touch-friendly RSVP buttons (vertical stack, 48px)
+  - ✅ Larger avatars on mobile
+  - ✅ Delete confirmation optimized
+
+### Phase 7: Performance Optimization (Partially Complete)
+- ✅ **Loading Skeletons** (Phase 7.2)
+  - ✅ GroupCardSkeleton component
+  - ✅ EventCardSkeleton component
+  - ✅ ListSkeleton wrapper (configurable grid/list)
+  - ✅ Integrated into MainContent (Groups page)
+- ✅ **Image Optimization** (Phase 7.1)
+  - ✅ Replaced Mantine Image with Next.js Image in GroupCard
+  - ✅ Optimized featured images in Stories pages
+  - ✅ Added responsive `sizes` attribute
+  - ✅ Configured `next.config.js` for external domains
+  - ✅ Lazy loading for below-fold images
+  - ✅ Priority loading for above-fold content
 
 ---
 
 ## 📋 Remaining Tasks
 
 ### Task Summary by Phase
-- **Phase 4** (1 form): Profile Edit form - 6 subtasks
-- **Phase 5** (3 pages): Group Detail, Event Detail, User Profile - ~40 subtasks
+- ~~**Phase 4** (1 form): Profile Edit form~~ ✅ COMPLETE
+- ~~**Phase 5** (3 pages): Group Detail, Event Detail, User Profile~~ ✅ COMPLETE
 - **Phase 6** (4 features): My Groups, Calendar, Notifications, Interests - ~25 subtasks
-- **Phase 7** (4 areas): Images, Code Splitting, Loading States, Performance Testing - ~20 subtasks
+- **Phase 7** (2 areas): Code Splitting, Lighthouse Performance Audit - ~10 subtasks
 - **Phase 8** (5 PWA features): Service Worker, Manifest, Install, Push, Offline - ~20 subtasks (DEFERRED)
 
-**Total Estimated Tasks: ~110 subtasks across 17 major features**
+**Total Remaining Tasks: ~35 subtasks across 11 features**
 
 **Recommended Order:**
-1. Phase 4 → Phase 5 → Phase 7 → Phase 6 → Phase 8
-2. Rationale: Complete forms, then high-traffic pages, optimize performance, add nice-to-haves, finally PWA
+1. Phase 7 (Performance) → Phase 6 (Feature Enhancements) → Phase 8 (PWA - Deferred)
+2. Rationale: Optimize performance first, then enhance features, finally PWA
 
 ---
 
-### Phase 4: Forms & Input (Partially Complete)
-- [ ] **Profile Edit form optimization** (`/profile/edit/page.tsx` or modal)
-  - [ ] Audit current profile edit UI
-  - [ ] Full-screen modal/page on mobile (`fullScreen={isMobile}`)
-  - [ ] Touch-friendly inputs (size="md", 44px buttons)
-  - [ ] Vertical field stacking (no multi-column on mobile)
-  - [ ] Image upload with mobile camera support
-  - [ ] Test on mobile viewport with Puppeteer
+### Phase 7: Performance Optimization (Remaining Tasks)
 
-### Phase 5: Detail Pages (Mobile Layout Refactor)
+#### 7.3 Code Splitting & Bundle Optimization
+- [ ] **Analyze bundle size**
+  - [ ] Run `npm run build` and check output
+  - [ ] Identify large dependencies
+- [ ] **Dynamic imports for heavy components**
+  - [ ] Lazy load modals (CreateEventModal, CreateGroupModal)
+  - [ ] Lazy load calendar library components
+  - [ ] Lazy load admin-only components
+- [ ] **Route-based code splitting**
+  - [ ] Verify Next.js automatic code splitting
+  - [ ] Check bundle sizes for each route
 
-#### 5.1 Group Detail Page (`/groups/[id]/page.tsx`)
-- [ ] **Audit current layout** - Identify desktop-only patterns
-- [ ] **Mobile header**
-  - [ ] Add back button (navigate to previous page)
-  - [ ] Show group name in header on scroll
-  - [ ] Add action menu (three dots) for settings/leave group
-- [ ] **Hero section**
-  - [ ] Full-width cover image on mobile
-  - [ ] Overlay group title and category badges
-  - [ ] Touch-friendly "Join Group" button (48px height, sticky bottom)
-- [ ] **Content sections** (stack vertically on mobile)
-  - [ ] About section with read more/less toggle
-  - [ ] Upcoming events list (horizontal scroll cards)
-  - [ ] Member list with avatars (show first 5, "See all X members" link)
-  - [ ] Location map (collapsible on mobile)
-- [ ] **Action buttons**
-  - [ ] Fixed bottom bar with primary action (Join/Message/Leave)
-  - [ ] Share button (native share API on mobile)
-- [ ] **Remove desktop sidebars** - All sidebar content moves into main flow
-- [ ] **Test** with Puppeteer at 375x667
-
-#### 5.2 Event Detail Page (`/events/[id]/page.tsx`)
-- [ ] **Audit current layout**
-- [ ] **Mobile header**
-  - [ ] Back button to calendar or group
-  - [ ] Event title on scroll
-  - [ ] Share button in header
-- [ ] **Hero section**
-  - [ ] Event cover image (full-width)
-  - [ ] Date/time badge overlay (pill format)
-  - [ ] RSVP button (sticky, 48px height, gradient)
-- [ ] **Event details** (vertical stack)
-  - [ ] Date, time, location with icons
-  - [ ] Description with read more toggle
-  - [ ] Attendee count with avatars
-  - [ ] Host group info (linked card)
-- [ ] **Attendee list**
-  - [ ] Horizontal scroll avatar list
-  - [ ] "See all attendees" expands to bottom sheet
-- [ ] **Map section**
-  - [ ] Collapsible map (tap to expand full-screen)
-  - [ ] "Get Directions" button (opens maps app)
-- [ ] **Related events** (if applicable)
-  - [ ] Horizontal scroll card list
-- [ ] **Test** with Puppeteer
-
-#### 5.3 User Profile Page (`/profile/page.tsx`)
-- [ ] **Audit current layout**
-- [ ] **Profile header**
-  - [ ] Avatar (larger on mobile, centered)
-  - [ ] Name and bio (centered alignment)
-  - [ ] Edit Profile button (full-width, 48px)
-  - [ ] Stats row (Groups | Events | Connections)
-- [ ] **Tab navigation** (if multiple sections)
-  - [ ] Use Mantine Tabs with horizontal scroll
-  - [ ] Sections: About, Groups, Events, Activity
-- [ ] **Groups section**
-  - [ ] Vertical list of joined groups (GroupCard components)
-  - [ ] "See all" link if >3 groups
-- [ ] **Events section**
-  - [ ] Upcoming events (vertical list)
-  - [ ] Past events (collapsed accordion)
-- [ ] **Settings gear** (top-right header icon)
-  - [ ] Opens settings modal/page
-- [ ] **Test** with Puppeteer
+#### 7.4 Lighthouse Performance Audit
+- [ ] **Run Lighthouse audit** (mobile)
+  - [ ] Homepage performance score (target: >90)
+  - [ ] Group detail page
+  - [ ] Activities page
+  - [ ] Stories page
+- [ ] **Fix Core Web Vitals issues**
+  - [ ] LCP (Largest Contentful Paint) < 2.5s
+  - [ ] FID (First Input Delay) < 100ms
+  - [ ] CLS (Cumulative Layout Shift) < 0.1
+- [ ] **Real device testing**
+  - [ ] Test on mid-range Android device (Chrome)
+  - [ ] Test on iPhone (Safari)
+  - [ ] Measure time to interactive (TTI)
 
 ### Phase 6: Additional Pages & Features
 
