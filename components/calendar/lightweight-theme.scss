@@ -1,0 +1,195 @@
+// Lightweight Calendar Theme Override for Mantine Integration
+// Uses CSS custom properties set by LightweightCalendarWrapper
+
+.calendar-wrapper {
+  background-color: var(--calendar-bg);
+  color: var(--calendar-text);
+
+  // Ensure calendar fills its container
+  .calendar {
+    height: 100%;
+    margin-top: 0;
+  }
+
+  // Override default calendar colors
+  .calendar-cell {
+    background-color: var(--calendar-bg);
+    border-color: var(--calendar-border);
+    color: var(--calendar-text);
+
+    &:hover {
+      background-color: var(--calendar-hover-bg);
+    }
+
+    &--today {
+      background-color: var(--calendar-today-bg);
+      border-color: var(--calendar-today-border);
+    }
+
+    &--weekend {
+      background-color: var(--calendar-hover-bg);
+      opacity: 0.9;
+    }
+
+    &--inactive {
+      opacity: 0.5;
+    }
+  }
+
+  .calendar-header {
+    background-color: var(--calendar-bg);
+    border-bottom-color: var(--calendar-border);
+    color: var(--calendar-text);
+  }
+
+  .calendar-day-number {
+    color: var(--calendar-text);
+  }
+
+  .calendar-day-string {
+    color: var(--calendar-text-dimmed);
+  }
+
+  .calendar-hour {
+    color: var(--calendar-text-dimmed);
+    border-color: var(--calendar-border);
+  }
+
+  // Navigation buttons
+  .calendar-nav-button {
+    background-color: var(--calendar-bg);
+    border-color: var(--calendar-border);
+    color: var(--calendar-text);
+
+    &:hover {
+      background-color: var(--calendar-hover-bg);
+    }
+  }
+
+  // Grid lines - ensure visibility
+  .calendar-grid-line {
+    border-color: var(--calendar-border);
+  }
+
+  .vertical-borders-container__border {
+    border-right-color: var(--gs-200);
+  }
+
+  .month-week-row {
+    border-bottom-color: var(--gs-200);
+  }
+
+  // Time labels
+  .calendar-time-label {
+    color: var(--calendar-text-dimmed);
+    border-color: var(--calendar-border);
+  }
+
+  // Custom item styling (events)
+  // Only restrict height in month/week grid views, not in timeline views
+  .month-view-inside .item,
+  .week-view-inside .item {
+    min-height: 20px;
+    max-height: 24px;
+    margin-bottom: 2px;
+  }
+
+  // Timeline views need to allow width/left positioning
+  .day-hour-rows__items {
+    // Ensure 2-column grid for width calculations to work
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .week-time-week__column {
+    // Week view already has grid-template-columns from WeekTimeView.scss
+  }
+
+  .day-view-inside .item,
+  .week-time-view-inside .item,
+  .day-reverse-view-inside .item {
+    // Keep position: relative (original calendar behavior)
+    // Grid handles vertical positioning via grid-row
+    // Width and left handle horizontal overlap
+    position: relative;
+  }
+
+  .sub-item {
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 11px;
+    line-height: 1.3;
+
+    &--hovered {
+      opacity: 0.9;
+    }
+
+    &--small-size {
+      font-size: 10px;
+      padding: 2px 4px;
+    }
+  }
+
+  // Timeline view sub-items should fill container height
+  .day-view-inside .sub-item,
+  .week-time-view-inside .sub-item,
+  .day-reverse-view-inside .sub-item {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding: 4px 6px;
+
+    &--left-border {
+      border-left: 3px solid rgba(255, 255, 255, 0.8);
+    }
+
+    &--left-arrow::before,
+    &--right-arrow::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 0;
+      border-style: solid;
+    }
+
+    &--left-arrow::before {
+      left: 0;
+      border-width: 8px 8px 8px 0;
+      border-color: transparent currentColor transparent transparent;
+    }
+
+    &--right-arrow::after {
+      right: 0;
+      border-width: 8px 0 8px 8px;
+      border-color: transparent transparent transparent currentColor;
+    }
+  }
+}
+
+// Dark mode specific overrides
+[data-mantine-color-scheme='dark'] {
+  .calendar-wrapper {
+    // Additional dark mode adjustments if needed
+    .calendar-cell--weekend {
+      opacity: 0.95;
+    }
+  }
+}
+
+// Mobile responsive adjustments
+@media (max-width: 768px) {
+  .calendar-wrapper {
+    .calendar-day-number {
+      font-size: 14px;
+    }
+
+    .calendar-day-string {
+      font-size: 10px;
+    }
+
+    .sub-item {
+      font-size: 10px;
+      padding: 2px 4px;
+    }
+  }
+}

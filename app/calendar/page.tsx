@@ -29,7 +29,8 @@ import {
   IconFilter
 } from '@tabler/icons-react';
 import Header from '@/components/layout/Header';
-// import EventCalendar from '@/components/events/EventCalendar'; // TODO: Install react-lightweight-calendar
+import LightweightCalendarWrapper from '@/components/calendar/LightweightCalendarWrapper';
+import { CurrentView } from '@/components/calendar/lightweight/Calendar/Calendar.types';
 
 interface CalendarEvent {
   id: string;
@@ -210,17 +211,12 @@ export default function CalendarPage() {
                 </Stack>
               </Center>
             ) : (
-              <Card p="xl">
-                <Stack align="center" gap="md">
-                  <IconCalendar size={48} color="gray" />
-                  <Text size="lg" fw={500} c="dimmed">
-                    Calendar view temporarily disabled
-                  </Text>
-                  <Text size="sm" c="dimmed" ta="center">
-                    Calendar library needs to be installed. Please use the Events page for now.
-                  </Text>
-                </Stack>
-              </Card>
+              <LightweightCalendarWrapper
+                events={filteredEvents}
+                onSelectEvent={handleSelectEvent}
+                onSelectSlot={handleSelectSlot}
+                defaultView={CurrentView.MONTH}
+              />
             )}
           </Paper>
         </Stack>
