@@ -10,6 +10,11 @@ export async function GET(request: NextRequest) {
     const fromDate = searchParams.get('fromDate');
     const toDate = searchParams.get('toDate');
     const eventType = searchParams.get('eventType');
+    const search = searchParams.get('search');
+    const categoriesParam = searchParams.get('categories');
+    const level2Param = searchParams.get('level2');
+    const level3Param = searchParams.get('level3');
+    const location = searchParams.get('location');
 
     const session = await getServerSession(authOptions);
 
@@ -17,6 +22,97 @@ export async function GET(request: NextRequest) {
     const where: any = {
       eventType: { not: 'CANCELLED' }, // Exclude cancelled events
     };
+
+    // Build group filter for tags and location
+    const groupWhere: any = {};
+
+    // Location filtering
+    if (location) {
+      groupWhere.location = {
+        contains: location,
+        mode: 'insensitive',
+      };
+    }
+
+    // Search filtering (searches event title/description and group title)
+    if (search) {
+      where.OR = [
+        {
+          title: {
+            contains: search,
+            mode: 'insensitive',
+          },
+        },
+        {
+          description: {
+            contains: search,
+            mode: 'insensitive',
+          },
+        },
+        {
+          group: {
+            title: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+        },
+      ];
+    }
+
+    // Tag filtering (filter by group tags)
+    const tagFilters: any[] = [];
+
+    if (categoriesParam) {
+      const categories = categoriesParam.split(',');
+      tagFilters.push({
+        tags: {
+          some: {
+            tag: {
+              name: {
+                in: categories,
+              },
+            },
+          },
+        },
+      });
+    }
+
+    if (level2Param) {
+      const level2Ids = level2Param.split(',');
+      tagFilters.push({
+        tags: {
+          some: {
+            tagId: {
+              in: level2Ids,
+            },
+          },
+        },
+      });
+    }
+
+    if (level3Param) {
+      const level3Ids = level3Param.split(',');
+      tagFilters.push({
+        tags: {
+          some: {
+            tagId: {
+              in: level3Ids,
+            },
+          },
+        },
+      });
+    }
+
+    // Apply tag filters to group where clause
+    if (tagFilters.length > 0) {
+      groupWhere.AND = tagFilters;
+    }
+
+    // Add group filter to main where clause if any group filters exist
+    if (Object.keys(groupWhere).length > 0) {
+      where.group = groupWhere;
+    }
 
     // Date filtering
     if (fromDate) {

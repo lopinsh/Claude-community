@@ -17,11 +17,11 @@ import {
   useMantineColorScheme,
   useMantineTheme
 } from '@mantine/core'
-import { IconNews, IconCalendar, IconUser } from '@tabler/icons-react'
+import { IconSparkles, IconCalendar, IconUser } from '@tabler/icons-react'
 import MainLayout from '@/components/layout/MainLayout'
 import Link from 'next/link'
 
-interface NewsArticle {
+interface StoryArticle {
   id: string
   title: string
   slug: string
@@ -35,10 +35,10 @@ interface NewsArticle {
   }
 }
 
-export default function NewsPage() {
+export default function StoriesPage() {
   const { colorScheme } = useMantineColorScheme()
   const theme = useMantineTheme()
-  const [articles, setArticles] = useState<NewsArticle[]>([])
+  const [articles, setArticles] = useState<StoryArticle[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -47,13 +47,13 @@ export default function NewsPage() {
 
   const fetchArticles = async () => {
     try {
-      const response = await fetch('/api/news')
+      const response = await fetch('/api/stories')
       if (response.ok) {
         const data = await response.json()
         setArticles(data.articles || [])
       }
     } catch (error) {
-      console.error('Failed to fetch news:', error)
+      console.error('Failed to fetch stories:', error)
     } finally {
       setLoading(false)
     }
@@ -64,9 +64,9 @@ export default function NewsPage() {
       <Container size="lg" py="xl">
         <Stack gap="xl">
           <Box>
-            <Title order={1} mb="sm">Community News</Title>
+            <Title order={1} mb="sm">Community Stories</Title>
             <Text size="lg" c="dimmed">
-              Stay updated with announcements, events, and community highlights
+              Celebrating positive impact and shared experiences in our community
             </Text>
           </Box>
 
@@ -78,11 +78,11 @@ export default function NewsPage() {
             <Center py="xl">
               <Stack align="center" gap="md">
                 <ThemeIcon size={80} radius="xl" variant="light" color="categoryBlue">
-                  <IconNews size={40} />
+                  <IconSparkles size={40} />
                 </ThemeIcon>
-                <Title order={3} c="dimmed">No news yet</Title>
+                <Title order={3} c="dimmed">No stories yet</Title>
                 <Text c="dimmed" ta="center" maw={400}>
-                  Check back soon for updates, announcements, and highlights from the community!
+                  Check back soon for inspiring stories and positive impact from the community!
                 </Text>
               </Stack>
             </Center>
@@ -92,7 +92,7 @@ export default function NewsPage() {
                 <Card
                   key={article.id}
                   component={Link}
-                  href={`/news/${article.slug}`}
+                  href={`/stories/${article.slug}`}
                   padding="lg"
                   radius="md"
                   withBorder

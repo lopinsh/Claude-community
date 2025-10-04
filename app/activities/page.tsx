@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import {
   Container,
@@ -13,24 +13,28 @@ import {
   Center,
   Loader,
   Alert,
-  Tabs,
   Badge,
   Select,
   Modal,
-  Card
+  Card,
+  Box,
+  useMantineColorScheme,
+  useMantineTheme
 } from '@mantine/core';
 import {
   IconCalendar,
   IconMapPin,
   IconUsers,
-  IconEye,
-  IconLock,
   IconAlertCircle,
   IconFilter
 } from '@tabler/icons-react';
-import Header from '@/components/layout/Header';
+import { useMediaQuery } from '@mantine/hooks';
+import MainLayout from '@/components/layout/MainLayout';
+import LeftSidebar from '@/components/dashboard/LeftSidebar';
+import { FilterDrawer, SearchOverlay } from '@/components/mobile';
 import LightweightCalendarWrapper from '@/components/calendar/LightweightCalendarWrapper';
 import { CurrentView } from '@/components/calendar/lightweight/Calendar/Calendar.types';
+import { useFilterStore } from '@/hooks/useFilterStore';
 
 interface CalendarEvent {
   id: string;
@@ -57,21 +61,55 @@ interface CalendarEvent {
 }
 
 export default function ActivitiesPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const { colorScheme } = useMantineColorScheme();
+  const theme = useMantineTheme();
+  const isMobile = useMediaQuery('(max-width: 768px)');
+
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [eventDetailModal, setEventDetailModal] = useState(false);
-  const [activeTab, setActiveTab] = useState('all');
   const [eventTypeFilter, setEventTypeFilter] = useState<string>('');
+
+  // Filter state from shared store
+  const {
+    searchQuery,
+    selectedCategories,
+    selectedLevel2,
+    selectedLevel3,
+    selectedLocation,
+    setSearchQuery,
+    setSelectedCategories,
+    setSelectedLevel2,
+    setSelectedLevel3,
+    setSelectedLocation,
+  } = useFilterStore();
+
+  // Search overlay state
+  const [searchOverlayOpened, setSearchOverlayOpened] = useState(false);
+
+  // Sidebar collapse state
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Mobile sidebar drawer state
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const fetchEvents = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
+      const params = new URLSearchParams();
+
+      if (searchQuery) params.set('search', searchQuery);
+      if (selectedCategories.length > 0) params.set('categories', selectedCategories.join(','));
+      if (selectedLevel2.length > 0) params.set('level2', selectedLevel2.join(','));
+      if (selectedLevel3.length > 0) params.set('level3', selectedLevel3.join(','));
+      if (selectedLocation) params.set('location', selectedLocation);
+
       // Fetch all public events and events from user's groups
-      const response = await fetch('/api/calendar/events');
+      const response = await fetch(`/api/calendar/events?${params.toString()}`);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -86,7 +124,7 @@ export default function ActivitiesPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [searchQuery, selectedCategories, selectedLevel2, selectedLevel3, selectedLocation]);
 
   useEffect(() => {
     fetchEvents();
@@ -97,125 +135,161 @@ export default function ActivitiesPage() {
     setEventDetailModal(true);
   };
 
-  // Filter events based on active tab and filters
+  // Filter events based on event type only (authorization handled by backend)
   const filteredEvents = events.filter(event => {
-    // Tab filtering
-    if (activeTab === 'public' && event.visibility !== 'PUBLIC') return false;
-    if (activeTab === 'private' && event.visibility !== 'PRIVATE') return false;
-
-    // Event type filtering
     if (eventTypeFilter && event.eventType !== eventTypeFilter) return false;
-
     return true;
   });
 
-  if (loading) {
+  // Calculate total event count for stats
+  const totalEventCount = useMemo(() => filteredEvents.length, [filteredEvents]);
+
+  if (status === 'loading') {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: 'var(--mantine-color-gray-0)' }}>
-        <Header />
-        <Container size="xl" py="xl">
-          <Center style={{ minHeight: 400 }}>
-            <Stack align="center" gap="md">
-              <Loader size="lg" />
-              <Text>Loading activities...</Text>
-            </Stack>
-          </Center>
-        </Container>
-      </div>
+      <Center style={{ minHeight: '100vh' }}>
+        <Stack align="center">
+          <Loader size="lg" />
+          <Text>Loading...</Text>
+        </Stack>
+      </Center>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--mantine-color-gray-0)' }}>
-      <Header />
+    <MainLayout onBurgerClick={isMobile ? () => setMobileSidebarOpen(true) : undefined}>
+      <Box style={{
+        display: isMobile ? 'flex' : 'grid',
+        flexDirection: isMobile ? 'column' : undefined,
+        gridTemplateColumns: isMobile ? undefined : (sidebarCollapsed ? '60px 1fr' : 'minmax(320px, 320px) 1fr'),
+        transition: 'grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        minHeight: 'calc(100vh - 72px)',
+        gap: 0,
+        flex: 1,
+      }}>
+        {/* Hide sidebar on mobile */}
+        {!isMobile && (
+          <LeftSidebar
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            selectedCategories={selectedCategories}
+            onCategoryChange={setSelectedCategories}
+            selectedLevel2={selectedLevel2}
+            onLevel2Change={setSelectedLevel2}
+            selectedLevel3={selectedLevel3}
+            onLevel3Change={setSelectedLevel3}
+            selectedLocation={selectedLocation}
+            onLocationChange={setSelectedLocation}
+            itemCount={totalEventCount}
+            totalMembers={0}
+            onCreateGroup={() => {}}
+            isCollapsed={sidebarCollapsed}
+            onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          />
+        )}
 
-      <Container size="xl" py="md">
-        <Stack gap="lg">
-          {/* Header */}
-          <Paper p="lg" withBorder>
-            <Group justify="space-between" align="flex-start">
-              <div>
-                <Title order={1} size="h2" mb="xs">
-                  Community Activities
-                </Title>
-                <Text c="dimmed">
-                  Discover upcoming events from groups across the community
-                </Text>
-              </div>
-
-              <Group>
-                <Select
-                  placeholder="Filter by type"
-                  leftSection={<IconFilter size={16} />}
-                  data={[
-                    { value: '', label: 'All Types' },
-                    { value: 'REGULAR', label: 'Regular Events' },
-                    { value: 'SPECIAL', label: 'Special Events' },
-                  ]}
-                  value={eventTypeFilter}
-                  onChange={(value) => setEventTypeFilter(value || '')}
-                  w={150}
-                />
-              </Group>
-            </Group>
-
-            {/* Event Type Tabs */}
-            <Tabs value={activeTab} onChange={(value) => setActiveTab(value || 'all')} mt="md">
-              <Tabs.List>
-                <Tabs.Tab value="all" leftSection={<IconCalendar size={16} />}>
-                  All Events
-                  <Badge variant="light" size="xs" ml="xs">
-                    {events.length}
-                  </Badge>
-                </Tabs.Tab>
-                <Tabs.Tab value="public" leftSection={<IconEye size={16} />}>
-                  Public Events
-                  <Badge variant="light" size="xs" ml="xs" color="green">
-                    {events.filter(e => e.visibility === 'PUBLIC').length}
-                  </Badge>
-                </Tabs.Tab>
-                <Tabs.Tab value="private" leftSection={<IconLock size={16} />}>
-                  Group Events
-                  <Badge variant="light" size="xs" ml="xs" color="blue">
-                    {events.filter(e => e.visibility === 'PRIVATE').length}
-                  </Badge>
-                </Tabs.Tab>
-              </Tabs.List>
-            </Tabs>
-          </Paper>
-
-          {error && (
-            <Alert icon={<IconAlertCircle size={16} />} color="red">
-              {error}
-            </Alert>
-          )}
-
-          {/* Calendar */}
-          <Paper p="lg" withBorder>
-            {filteredEvents.length === 0 ? (
-              <Center py="xl">
-                <Stack align="center" gap="md">
-                  <IconCalendar size={48} color="var(--mantine-color-gray-5)" />
-                  <Text size="lg" c="dimmed">No events found</Text>
-                  <Text size="sm" c="dimmed">
-                    {activeTab === 'all'
-                      ? 'There are no events scheduled yet.'
-                      : `No ${activeTab} events found.`
-                    }
+        <Box
+          p={isMobile ? 'md' : 'clamp(24px, 4vw, 40px)'}
+          bg={colorScheme === 'dark' ? 'dark.8' : 'white'}
+          style={{
+            borderLeft: isMobile ? 'none' : `1px solid ${colorScheme === 'dark' ? theme.colors.dark[4] : theme.colors.gray[2]}`,
+            overflow: 'auto',
+            flex: 1,
+          }}
+        >
+          <Stack gap="lg">
+            {/* Header */}
+            <Paper p="lg" withBorder>
+              <Group justify="space-between" align="flex-start" wrap="wrap">
+                <div>
+                  <Title order={1} size="h2" mb="xs">
+                    Community Activities
+                  </Title>
+                  <Text c="dimmed">
+                    Discover upcoming events from groups across the community
                   </Text>
-                </Stack>
-              </Center>
-            ) : (
-              <LightweightCalendarWrapper
-                events={filteredEvents}
-                onSelectEvent={handleSelectEvent}
-                defaultView={CurrentView.MONTH}
-                cellClickMode="navigate"
-              />
+                </div>
+
+                <Group>
+                  <Badge variant="light" size="lg" color="categoryBlue">
+                    {totalEventCount} events
+                  </Badge>
+                  <Select
+                    placeholder="Filter by type"
+                    leftSection={<IconFilter size={16} />}
+                    data={[
+                      { value: '', label: 'All Types' },
+                      { value: 'REGULAR', label: 'Regular Events' },
+                      { value: 'SPECIAL', label: 'Special Events' },
+                    ]}
+                    value={eventTypeFilter}
+                    onChange={(value) => setEventTypeFilter(value || '')}
+                    w={150}
+                  />
+                </Group>
+              </Group>
+            </Paper>
+
+            {error && (
+              <Alert icon={<IconAlertCircle size={16} />} color="red">
+                {error}
+              </Alert>
             )}
-          </Paper>
-        </Stack>
-      </Container>
+
+            {/* Calendar */}
+            <Paper p="lg" withBorder>
+              {loading ? (
+                <Center py="xl">
+                  <Stack align="center" gap="md">
+                    <Loader size="lg" />
+                    <Text>Loading activities...</Text>
+                  </Stack>
+                </Center>
+              ) : filteredEvents.length === 0 ? (
+                <Center py="xl">
+                  <Stack align="center" gap="md">
+                    <IconCalendar size={48} color="var(--mantine-color-gray-5)" />
+                    <Text size="lg" c="dimmed">No events found</Text>
+                    <Text size="sm" c="dimmed">
+                      Try adjusting your filters to see more events
+                    </Text>
+                  </Stack>
+                </Center>
+              ) : (
+                <LightweightCalendarWrapper
+                  events={filteredEvents}
+                  onSelectEvent={handleSelectEvent}
+                  defaultView={CurrentView.MONTH}
+                  cellClickMode="navigate"
+                />
+              )}
+            </Paper>
+          </Stack>
+        </Box>
+      </Box>
+
+      {/* Mobile Sidebar Drawer */}
+      {isMobile && (
+        <FilterDrawer
+          opened={mobileSidebarOpen}
+          onClose={() => setMobileSidebarOpen(false)}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          selectedCategories={selectedCategories}
+          onCategoryChange={setSelectedCategories}
+          selectedLevel2={selectedLevel2}
+          onLevel2Change={setSelectedLevel2}
+          selectedLevel3={selectedLevel3}
+          onLevel3Change={setSelectedLevel3}
+          selectedLocation={selectedLocation}
+          onLocationChange={setSelectedLocation}
+          itemCount={totalEventCount}
+          totalMembers={0}
+          onCreateGroup={() => {}}
+        />
+      )}
+
+      {/* Search Overlay */}
+      <SearchOverlay opened={searchOverlayOpened} onClose={() => setSearchOverlayOpened(false)} />
 
       {/* Event Detail Modal */}
       <Modal

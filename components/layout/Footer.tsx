@@ -28,7 +28,7 @@ const FOOTER_SECTIONS: FooterSection[] = [
     links: [
       { label: 'Forums', href: '/forums' },
       { label: 'Activities', href: '/activities' },
-      { label: 'News & Updates', href: '/news' },
+      { label: 'Stories & Impact', href: '/stories' },
       { label: 'Blog', href: '/blog' },
     ],
   },

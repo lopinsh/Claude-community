@@ -15,7 +15,7 @@ import {
   useMantineTheme,
   useMantineColorScheme
 } from '@mantine/core'
-import { IconChevronRight, IconSearch, IconSun, IconMoon, IconShield, IconDashboard, IconTags, IconNews, IconFileText } from '@tabler/icons-react'
+import { IconChevronRight, IconSearch, IconSun, IconMoon, IconShield, IconDashboard, IconTags, IconSparkles, IconFileText } from '@tabler/icons-react'
 import { useMediaQuery } from '@mantine/hooks'
 import { useBreadcrumbStore } from '@/hooks/useBreadcrumbs'
 import NotificationBell from '../NotificationBell'
@@ -196,10 +196,10 @@ export default function Header({ onBurgerClick }: HeaderProps = {}) {
                         </Menu.Item>
                         <Menu.Item
                           component={Link}
-                          href="/admin/news"
-                          leftSection={<IconNews size={16} />}
+                          href="/admin/stories"
+                          leftSection={<IconSparkles size={16} />}
                         >
-                          News
+                          Stories
                         </Menu.Item>
                         <Menu.Item
                           component={Link}

@@ -9,6 +9,7 @@ import LeftSidebar from '@/components/dashboard/LeftSidebar';
 import MainContent from '@/components/dashboard/MainContent';
 import CreateGroupModal from '@/components/groups/CreateGroupModal';
 import { FilterDrawer, SearchOverlay } from '@/components/mobile';
+import { useFilterStore } from '@/hooks/useFilterStore';
 
 export default function Home() {
   const { status } = useSession();
@@ -19,12 +20,19 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filter state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedLevel2, setSelectedLevel2] = useState<string[]>([]);
-  const [selectedLevel3, setSelectedLevel3] = useState<string[]>([]);
-  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+  // Filter state from shared store
+  const {
+    searchQuery,
+    selectedCategories,
+    selectedLevel2,
+    selectedLevel3,
+    selectedLocation,
+    setSearchQuery,
+    setSelectedCategories,
+    setSelectedLevel2,
+    setSelectedLevel3,
+    setSelectedLocation,
+  } = useFilterStore();
 
   // Create group modal state
   const [createGroupModalOpened, setCreateGroupModalOpened] = useState(false);

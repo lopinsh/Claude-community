@@ -19,7 +19,7 @@ import { IconCalendar, IconUser } from '@tabler/icons-react';
 import Header from '@/components/layout/Header';
 import { getRoleBadge } from '@/lib/authorization';
 
-interface NewsArticle {
+interface StoryArticle {
   id: string;
   title: string;
   content: string;
@@ -34,11 +34,11 @@ interface NewsArticle {
   };
 }
 
-export default function NewsArticlePage() {
+export default function StoryArticlePage() {
   const { colorScheme } = useMantineColorScheme();
   const params = useParams();
   const router = useRouter();
-  const [article, setArticle] = useState<NewsArticle | null>(null);
+  const [article, setArticle] = useState<StoryArticle | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -49,16 +49,16 @@ export default function NewsArticlePage() {
 
   const fetchArticle = async (slug: string) => {
     try {
-      const response = await fetch(`/api/news/${slug}`);
+      const response = await fetch(`/api/stories/${slug}`);
       if (response.ok) {
         const data = await response.json();
         setArticle(data.article);
       } else {
-        router.push('/news');
+        router.push('/stories');
       }
     } catch (error) {
       console.error('Failed to fetch article:', error);
-      router.push('/news');
+      router.push('/stories');
     } finally {
       setLoading(false);
     }

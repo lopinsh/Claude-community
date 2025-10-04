@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// GET - Get single published news article by slug (public)
+// GET - Get single published story article by slug (public)
 export async function GET(
   request: NextRequest,
   { params }: { params: { slug: string } }
@@ -34,9 +34,9 @@ export async function GET(
 
     return NextResponse.json({ article });
   } catch (error) {
-    console.error('Failed to fetch news article:', error);
+    console.error('Failed to fetch story article:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch news article' },
+      { error: 'Failed to fetch story article' },
       { status: 500 }
     );
   }
