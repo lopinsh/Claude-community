@@ -18,7 +18,7 @@ import {
   useMantineTheme
 } from '@mantine/core'
 import { IconNews, IconCalendar, IconUser } from '@tabler/icons-react'
-import Header from '@/components/layout/Header'
+import MainLayout from '@/components/layout/MainLayout'
 import Link from 'next/link'
 
 interface NewsArticle {
@@ -60,8 +60,7 @@ export default function NewsPage() {
   }
 
   return (
-    <Box mih="100vh" bg={colorScheme === 'dark' ? 'dark.7' : 'gray.0'}>
-      <Header />
+    <MainLayout>
       <Container size="lg" py="xl">
         <Stack gap="xl">
           <Box>
@@ -148,6 +147,6 @@ export default function NewsPage() {
           )}
         </Stack>
       </Container>
-    </Box>
+    </MainLayout>
   )
 }

@@ -6,20 +6,17 @@ import {
   Breadcrumbs,
   Anchor,
   Burger,
-  Drawer,
   Box,
   Group,
-  Stack,
   ActionIcon,
   Button,
   Text,
-  NavLink as MantineNavLink,
   Menu,
   useMantineTheme,
   useMantineColorScheme
 } from '@mantine/core'
 import { IconChevronRight, IconSearch, IconSun, IconMoon, IconShield, IconDashboard, IconTags, IconNews, IconFileText } from '@tabler/icons-react'
-import { useMediaQuery, useDisclosure } from '@mantine/hooks'
+import { useMediaQuery } from '@mantine/hooks'
 import { useBreadcrumbStore } from '@/hooks/useBreadcrumbs'
 import NotificationBell from '../NotificationBell'
 import UserAvatar from '../UserAvatar'
@@ -45,7 +42,6 @@ export default function Header({ onBurgerClick }: HeaderProps = {}) {
   const pathname = usePathname()
   const { customBreadcrumbs } = useBreadcrumbStore()
   const isMobile = useMediaQuery('(max-width: 768px)')
-  const [opened, { toggle, close }] = useDisclosure(false)
   const [searchOpened, setSearchOpened] = useState(false)
 
   const isLoading = status === 'loading'
@@ -56,11 +52,11 @@ export default function Header({ onBurgerClick }: HeaderProps = {}) {
     }
 
     if (!pathname || pathname === '/') {
-      return [{ title: 'Discover', href: '/' }]
+      return [{ title: 'Groups', href: '/' }]
     }
 
     const segments = pathname.split('/').filter(Boolean)
-    const breadcrumbs: BreadcrumbItem[] = [{ title: 'Home', href: '/' }]
+    const breadcrumbs: BreadcrumbItem[] = [{ title: 'Groups', href: '/' }]
 
     let currentPath = ''
     segments.forEach((segment, index) => {
@@ -72,8 +68,8 @@ export default function Header({ onBurgerClick }: HeaderProps = {}) {
         breadcrumbs.push({ title: 'Create' })
       } else if (segment === 'profile') {
         breadcrumbs.push({ title: 'Profile' })
-      } else if (segment === 'events') {
-        breadcrumbs.push({ title: 'Events', href: currentPath })
+      } else if (segment === 'activities') {
+        breadcrumbs.push({ title: 'Activities', href: currentPath })
       } else if (segments[index - 1] === 'groups' && segment !== 'create') {
         breadcrumbs.push({ title: 'Group Details' })
       }
@@ -89,28 +85,6 @@ export default function Header({ onBurgerClick }: HeaderProps = {}) {
 
   return (
     <>
-      {/* Mobile Navigation Drawer */}
-      <Drawer opened={opened} onClose={close} title="Navigation" position="left" size="xs">
-        <Stack gap="xs">
-          {NAV_LINKS.map((link) => {
-            const Icon = link.icon
-            const isActive = pathname === link.href
-
-            return (
-              <MantineNavLink
-                key={link.href}
-                component={Link}
-                href={link.href}
-                label={link.label}
-                leftSection={<Icon size={20} />}
-                active={isActive}
-                onClick={close}
-              />
-            )
-          })}
-        </Stack>
-      </Drawer>
-
       {/* Header Container */}
       <Box pos="sticky" top={0} style={{ zIndex: 50 }}>
         {/* Main Header */}
@@ -125,7 +99,7 @@ export default function Header({ onBurgerClick }: HeaderProps = {}) {
           <Group h="100%" justify="space-between">
             {/* Left: Logo + Mobile Burger + Nav Links */}
             <Group gap="lg">
-              {isMobile && <Burger opened={onBurgerClick ? false : opened} onClick={onBurgerClick || toggle} size="sm" />}
+              {isMobile && onBurgerClick && <Burger opened={false} onClick={onBurgerClick} size="sm" />}
 
               {/* Logo */}
               <Link href="/" style={{ textDecoration: 'none' }}>

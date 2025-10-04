@@ -4,7 +4,7 @@ export const LEVEL1_CATEGORY_COLORS: Record<string, string> = {
   'movement-wellness': 'categoryGreen',
   'gathering-fun': 'categoryPeach',
   'performance-spectacle': 'categoryBlue',
-  'civic-governance': 'categoryOrange',
+  'community-society': 'categoryOrange',
   'practical-resource': 'categoryYellow'
 }
 
@@ -39,9 +39,9 @@ export const LEVEL1_CATEGORIES = [
     icon: 'IconTheater'
   },
   {
-    value: 'civic-governance',
-    label: 'Civic & Governance',
-    description: 'Improve & Organize',
+    value: 'community-society',
+    label: 'Community & Society',
+    description: 'Civic engagement & community service',
     color: 'categoryOrange',
     icon: 'IconBuilding'
   },

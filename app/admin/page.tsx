@@ -30,7 +30,7 @@ import {
   IconClock,
 } from '@tabler/icons-react';
 import Link from 'next/link';
-import Header from '@/components/layout/Header';
+import MainLayout from '@/components/layout/MainLayout';
 import { canAccessAdminDashboard } from '@/lib/authorization';
 
 interface DashboardStats {
@@ -87,8 +87,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <Box mih="100vh" bg={colorScheme === 'dark' ? 'dark.7' : 'gray.0'}>
-      <Header />
+    <MainLayout>
       <Container size="xl" py="xl">
         <Stack gap="xl">
           {/* Header */}
@@ -371,6 +370,6 @@ export default function AdminDashboard() {
           </Grid>
         </Stack>
       </Container>
-    </Box>
+    </MainLayout>
   );
 }

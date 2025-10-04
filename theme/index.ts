@@ -57,16 +57,16 @@ const categoryRed: MantineColorsTuple = [
 ];
 
 const categoryOrange: MantineColorsTuple = [
-  '#fff7ed',
-  '#ffedd5',
-  '#fed7aa',
-  '#fdba74',
-  '#fb923c',
-  '#f3722c', // Base color (shade 5)
-  '#da671f',
-  '#c15c1b',
-  '#a85117',
-  '#8f4613',
+  '#fff5e6',
+  '#ffe6cc',
+  '#ffd9b3',
+  '#ffcc99',
+  '#ffb366',
+  '#FF6600', // Base color (shade 5) - Community & Society
+  '#e65c00',
+  '#cc5200',
+  '#b34700',
+  '#993d00',
 ];
 
 const categoryLightOrange: MantineColorsTuple = [
@@ -83,55 +83,55 @@ const categoryLightOrange: MantineColorsTuple = [
 ];
 
 const categoryPeach: MantineColorsTuple = [
-  '#fffbf5',
-  '#fef4e8',
-  '#fde8ca',
-  '#fcd8a1',
-  '#fbc478',
-  '#f9844a', // Base color (shade 5)
-  '#e07742',
-  '#c76a3a',
-  '#ae5d32',
-  '#95502a',
+  '#fff5f3',
+  '#ffe5e0',
+  '#ffd0c7',
+  '#ffbbad',
+  '#ffa599',
+  '#FA8072', // Base color (shade 5) - Gathering & Fun
+  '#e17367',
+  '#c8665c',
+  '#af5951',
+  '#964c46',
 ];
 
 const categoryYellow: MantineColorsTuple = [
-  '#fefce8',
-  '#fef9c3',
-  '#fef08a',
-  '#fde047',
-  '#facc15',
-  '#f9c74f', // Base color (shade 5)
-  '#e0b347',
-  '#c79f3f',
-  '#ae8b37',
-  '#95772f',
+  '#fff9e6',
+  '#fff3cc',
+  '#ffecb3',
+  '#ffe699',
+  '#ffe080',
+  '#FFC300', // Base color (shade 5) - Practical & Resource
+  '#e6b000',
+  '#cc9d00',
+  '#b38a00',
+  '#997700',
 ];
 
 const categoryGreen: MantineColorsTuple = [
-  '#f1f8f4',
-  '#e3f1e9',
-  '#c7e3d3',
-  '#abd5bd',
-  '#8fc7a7',
-  '#90be6d', // Base color (shade 5)
-  '#82ab62',
-  '#749857',
-  '#66854c',
-  '#587241',
+  '#f4f9f0',
+  '#e9f3e0',
+  '#d8e8c2',
+  '#c6dda4',
+  '#add185',
+  '#8BC34A', // Base color (shade 5) - Movement & Wellness
+  '#7db043',
+  '#6f9d3c',
+  '#618a35',
+  '#53772e',
 ];
 
 const categoryTeal: MantineColorsTuple = [
-  '#f0faf8',
-  '#d9f3ee',
-  '#b3e7dd',
-  '#8ddbcc',
-  '#67cfbb',
-  '#43aa8b', // Base color (shade 5)
-  '#3c997d',
-  '#35886f',
-  '#2e7761',
-  '#276653',
+  '#e6f2f2',
+  '#cce6e6',
+  '#b3d9d9',
+  '#99cccc',
+  '#66b3b3',
+  '#008080', // Base color (shade 5) - Skill & Craft
+  '#007373',
+  '#006666',
+  '#005959',
+  '#004d4d',
 ];
 
 const categoryBlueGreen: MantineColorsTuple = [
@@ -148,16 +148,16 @@ const categoryBlueGreen: MantineColorsTuple = [
 ];
 
 const categoryBlue: MantineColorsTuple = [
-  '#f3f5f9',
-  '#e7ebf3',
-  '#cfd7e7',
-  '#b7c3db',
-  '#9fafcf',
-  '#577590', // Base color (shade 5)
-  '#4f6982',
-  '#475d74',
-  '#3f5166',
-  '#374558',
+  '#eff3fc',
+  '#dfe7f9',
+  '#bfd0f4',
+  '#9fb8ef',
+  '#7fa1ea',
+  '#4169E1', // Base color (shade 5) - Performance & Spectacle
+  '#3a5fcb',
+  '#3455b5',
+  '#2d4b9f',
+  '#264189',
 ];
 
 const categoryDarkBlue: MantineColorsTuple = [

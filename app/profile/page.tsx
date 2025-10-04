@@ -24,7 +24,7 @@ import {
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
-import Header from '@/components/layout/Header';
+import MainLayout from '@/components/layout/MainLayout';
 import ProfileSidebar from '@/components/sidebars/ProfileSidebar';
 
 interface UserProfile {
@@ -153,8 +153,7 @@ export default function ProfilePage() {
 
   if (loading || status === 'loading') {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: '#fafafa' }}>
-        <Header />
+      <MainLayout>
         <div style={{ display: 'flex' }}>
           <ProfileSidebar
             isCollapsed={sidebarCollapsed}
@@ -167,14 +166,13 @@ export default function ProfilePage() {
             </Stack>
           </Center>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   if (!profile) {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: '#fafafa' }}>
-        <Header />
+      <MainLayout>
         <div style={{ display: 'flex' }}>
           <ProfileSidebar
             isCollapsed={sidebarCollapsed}
@@ -192,14 +190,12 @@ export default function ProfilePage() {
             </Card>
           </Container>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#fafafa' }}>
-      <Header />
-
+    <MainLayout>
       <div style={{ display: 'flex' }}>
         <ProfileSidebar
           isCollapsed={sidebarCollapsed}
@@ -345,6 +341,6 @@ export default function ProfilePage() {
         </Grid>
         </Container>
       </div>
-    </div>
+    </MainLayout>
   );
 }

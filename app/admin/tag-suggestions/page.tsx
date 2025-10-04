@@ -19,6 +19,7 @@ import {
 import { useSession } from 'next-auth/react';
 import { IconAlertCircle, IconCheck, IconX } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
+import MainLayout from '@/components/layout/MainLayout';
 
 interface TagSuggestion {
   id: string;
@@ -129,16 +130,19 @@ export default function AdminTagSuggestionsPage() {
 
   if (error && suggestions.length === 0) {
     return (
-      <Container size="md" py="xl">
-        <Alert color="red" icon={<IconAlertCircle size={16} />}>
-          {error}
-        </Alert>
-      </Container>
+      <MainLayout>
+        <Container size="md" py="xl">
+          <Alert color="red" icon={<IconAlertCircle size={16} />}>
+            {error}
+          </Alert>
+        </Container>
+      </MainLayout>
     );
   }
 
   return (
-    <Container size="lg" py="xl">
+    <MainLayout>
+      <Container size="lg" py="xl">
       <Stack gap="lg">
         <Title order={1}>Tag Suggestions Moderation</Title>
 
@@ -251,6 +255,7 @@ export default function AdminTagSuggestionsPage() {
           ))
         )}
       </Stack>
-    </Container>
+      </Container>
+    </MainLayout>
   );
 }

@@ -5,7 +5,7 @@ import { Modal, TextInput, Stack, Text, Group, Badge, Paper, Box, ScrollArea, Lo
 import { useDebouncedValue } from '@mantine/hooks';
 import { IconSearch, IconX, IconClock, IconMapPin, IconUsers, IconCalendar, IconBrain, IconHeart, IconUsersGroup, IconTheater, IconBuilding, IconTool } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
-import { LEVEL1_CATEGORIES } from '@/utils/categoryColors';
+import { useCategories, normalizeCategoryName } from '@/hooks/useCategories';
 
 interface SearchResult {
   type: 'group' | 'event';
@@ -33,6 +33,9 @@ export default function SearchOverlay({ opened, onClose }: SearchOverlayProps) {
   const theme = useMantineTheme();
   const { colorScheme } = useMantineColorScheme();
   const router = useRouter();
+
+  // Fetch L1 categories from database (single source of truth)
+  const { categories: level1Categories } = useCategories();
 
   const [query, setQuery] = useState('');
   const [debouncedQuery] = useDebouncedValue(query, 300);
@@ -334,9 +337,10 @@ export default function SearchOverlay({ opened, onClose }: SearchOverlayProps) {
               >
                 <Pill.Group>
                   {selectedCategories.map((id) => {
-                    const category = LEVEL1_CATEGORIES.find(c => c.value === id);
+                    const category = level1Categories.find(c => normalizeCategoryName(c.name) === id);
                     if (!category) return null;
-                    const IconComponent = getIconComponent(category.icon);
+                    const colorKey = category.colorKey || 'indigo';
+                    const IconComponent = getIconComponent(category.iconName || '');
                     return (
                       <Pill
                         key={id}
@@ -344,7 +348,7 @@ export default function SearchOverlay({ opened, onClose }: SearchOverlayProps) {
                         onRemove={() => setSelectedCategories(selectedCategories.filter(v => v !== id))}
                         styles={{
                           root: {
-                            backgroundColor: theme.colors[category.color][6],
+                            backgroundColor: theme.colors[colorKey][6],
                             color: 'white',
                             fontWeight: 600,
                           },
@@ -352,7 +356,7 @@ export default function SearchOverlay({ opened, onClose }: SearchOverlayProps) {
                       >
                         <Group gap={6}>
                           <IconComponent size={14} />
-                          {category.label}
+                          {category.name}
                         </Group>
                       </Pill>
                     );
@@ -380,18 +384,20 @@ export default function SearchOverlay({ opened, onClose }: SearchOverlayProps) {
             <Combobox.Dropdown>
               <Combobox.Options>
                 <ScrollArea.Autosize mah={300} type="scroll">
-                  {LEVEL1_CATEGORIES
-                    .filter(cat => !level1SearchValue || cat.label.toLowerCase().includes(level1SearchValue.toLowerCase()))
+                  {level1Categories
+                    .filter(cat => !level1SearchValue || cat.name.toLowerCase().includes(level1SearchValue.toLowerCase()))
                     .map((category) => {
-                      const IconComponent = getIconComponent(category.icon);
+                      const normalizedValue = normalizeCategoryName(category.name);
+                      const colorKey = category.colorKey || 'indigo';
+                      const IconComponent = getIconComponent(category.iconName || '');
                       return (
-                        <Combobox.Option value={category.value} key={category.value} active={selectedCategories.includes(category.value)}>
+                        <Combobox.Option value={normalizedValue} key={category.id} active={selectedCategories.includes(normalizedValue)}>
                           <Group gap="sm">
                             <Box
                               w={32}
                               h={32}
                               style={{
-                                backgroundColor: theme.colors[category.color][6],
+                                backgroundColor: theme.colors[colorKey][6],
                                 borderRadius: theme.radius.sm,
                                 display: 'flex',
                                 alignItems: 'center',
@@ -401,11 +407,11 @@ export default function SearchOverlay({ opened, onClose }: SearchOverlayProps) {
                               <IconComponent size={18} color="white" />
                             </Box>
                             <Box style={{ flex: 1 }}>
-                              <Text size="sm" fw={600}>{category.label}</Text>
+                              <Text size="sm" fw={600}>{category.name}</Text>
                               <Text size="xs" c="dimmed">{category.description}</Text>
                             </Box>
-                            {selectedCategories.includes(category.value) && (
-                              <CheckIcon size={16} color={theme.colors[category.color][6]} />
+                            {selectedCategories.includes(normalizedValue) && (
+                              <CheckIcon size={16} color={theme.colors[colorKey][6]} />
                             )}
                           </Group>
                         </Combobox.Option>

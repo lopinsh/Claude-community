@@ -41,7 +41,7 @@ import {
   IconChevronRight
 } from '@tabler/icons-react';
 import { LATVIAN_CITIES } from '@/utils/tagUtils';
-import { LEVEL1_CATEGORIES } from '@/utils/categoryColors';
+import { useCategories, normalizeCategoryName } from '@/hooks/useCategories';
 
 interface LeftSidebarProps {
   searchQuery: string;
@@ -81,6 +81,10 @@ export default function LeftSidebar({
   const theme = useMantineTheme();
   const { colorScheme } = useMantineColorScheme();
   const { data: session } = useSession();
+
+  // Fetch L1 categories from database (single source of truth)
+  const { categories: level1Categories, loading: categoriesLoading } = useCategories();
+
   const [level2Categories, setLevel2Categories] = useState<any[]>([]);
   const [level3Categories, setLevel3Categories] = useState<any[]>([]);
 
@@ -127,8 +131,11 @@ export default function LeftSidebar({
 
   // Get Level 1 color for current selection
   const getLevel1Color = () => {
-    if (selectedCategories.length === 1) {
-      return LEVEL1_CATEGORIES.find(l1 => selectedCategories.includes(l1.value))?.color || 'indigo';
+    if (selectedCategories.length === 1 && level1Categories.length > 0) {
+      const category = level1Categories.find(l1 =>
+        selectedCategories.includes(normalizeCategoryName(l1.name))
+      );
+      return category?.colorKey || 'indigo';
     }
     return 'indigo';
   };
@@ -265,9 +272,11 @@ export default function LeftSidebar({
               </UnstyledButton>
             </Tooltip>
 
-            {/* Category Options */}
-            {LEVEL1_CATEGORIES.map((category) => {
-              const isSelected = selectedCategories.includes(category.value)
+            {/* Category Options - from database (single source of truth) */}
+            {level1Categories.map((category) => {
+              const normalizedValue = normalizeCategoryName(category.name);
+              const isSelected = selectedCategories.includes(normalizedValue);
+              const colorKey = category.colorKey || 'indigo';
               const IconComponent = {
                 IconBrain,
                 IconHeart,
@@ -275,30 +284,30 @@ export default function LeftSidebar({
                 IconTheater,
                 IconBuilding,
                 IconTool
-              }[category.icon] || IconActivity
+              }[category.iconName || ''] || IconActivity;
 
               return (
                 <Tooltip
-                  key={category.value}
-                  label={category.description}
+                  key={category.id}
+                  label={category.description || category.name}
                   position="right"
                   disabled={isSelected}
                 >
                   <UnstyledButton
                     onClick={() => {
-                      if (selectedCategories.includes(category.value)) {
-                        onCategoryChange(selectedCategories.filter(cat => cat !== category.value))
+                      if (selectedCategories.includes(normalizedValue)) {
+                        onCategoryChange(selectedCategories.filter(cat => cat !== normalizedValue));
                       } else {
-                        onCategoryChange([...selectedCategories, category.value])
+                        onCategoryChange([...selectedCategories, normalizedValue]);
                       }
                     }}
                     p="xs"
                     bg={isSelected
-                      ? (colorScheme === 'dark' ? 'dark.5' : `${category.color}.0`)
+                      ? (colorScheme === 'dark' ? 'dark.5' : `${colorKey}.0`)
                       : 'transparent'}
                     style={{
                       borderRadius: theme.radius.sm,
-                      borderLeft: isSelected ? `3px solid ${theme.colors[category.color][5]}` : '3px solid transparent',
+                      borderLeft: isSelected ? `3px solid ${theme.colors[colorKey][5]}` : '3px solid transparent',
                       transition: theme.other.transition
                     }}
                   >
@@ -306,17 +315,17 @@ export default function LeftSidebar({
                       <ThemeIcon
                         size={24}
                         variant={isSelected ? 'filled' : 'light'}
-                        color={category.color}
+                        color={colorKey}
                       >
                         <IconComponent size={14} />
                       </ThemeIcon>
                       <Text
                         size="sm"
                         fw={isSelected ? 700 : 500}
-                        c={isSelected ? `${category.color}.${colorScheme === 'dark' ? '4' : '7'}` : undefined}
+                        c={isSelected ? `${colorKey}.${colorScheme === 'dark' ? '4' : '7'}` : undefined}
                         lineClamp={1}
                       >
-                        {category.label}
+                        {category.name}
                       </Text>
                     </Group>
                   </UnstyledButton>
@@ -634,9 +643,11 @@ export default function LeftSidebar({
       {/* Collapsed State - Show only essential icons */}
       {isCollapsed && (
         <Stack gap="xs" align="center" style={{ paddingTop: '40px' }}>
-          {/* Just show Level 1 category icons */}
-          {LEVEL1_CATEGORIES.map((category) => {
-            const isSelected = selectedCategories.includes(category.value);
+          {/* Just show Level 1 category icons - from database */}
+          {level1Categories.map((category) => {
+            const normalizedValue = normalizeCategoryName(category.name);
+            const isSelected = selectedCategories.includes(normalizedValue);
+            const colorKey = category.colorKey || 'indigo';
             const IconComponent = {
               IconBrain,
               IconHeart,
@@ -644,37 +655,37 @@ export default function LeftSidebar({
               IconTheater,
               IconBuilding,
               IconTool
-            }[category.icon] || IconActivity;
+            }[category.iconName || ''] || IconActivity;
 
             return (
               <Tooltip
-                key={category.value}
-                label={category.label}
+                key={category.id}
+                label={category.name}
                 position="right"
                 withArrow
               >
                 <UnstyledButton
                   onClick={() => {
-                    if (selectedCategories.includes(category.value)) {
-                      onCategoryChange(selectedCategories.filter(cat => cat !== category.value));
+                    if (selectedCategories.includes(normalizedValue)) {
+                      onCategoryChange(selectedCategories.filter(cat => cat !== normalizedValue));
                     } else {
-                      onCategoryChange([...selectedCategories, category.value]);
+                      onCategoryChange([...selectedCategories, normalizedValue]);
                     }
                   }}
                   p="xs"
                   bg={isSelected
-                    ? (colorScheme === 'dark' ? 'dark.5' : `${category.color}.0`)
+                    ? (colorScheme === 'dark' ? 'dark.5' : `${colorKey}.0`)
                     : 'transparent'}
                   style={{
                     borderRadius: theme.radius.sm,
-                    borderLeft: isSelected ? `3px solid ${theme.colors[category.color][5]}` : '3px solid transparent',
+                    borderLeft: isSelected ? `3px solid ${theme.colors[colorKey][5]}` : '3px solid transparent',
                     transition: theme.other.transition
                   }}
                 >
                   <ThemeIcon
                     size={28}
                     variant={isSelected ? 'filled' : 'light'}
-                    color={category.color}
+                    color={colorKey}
                   >
                     <IconComponent size={16} />
                   </ThemeIcon>

@@ -4,13 +4,15 @@ import { useState } from 'react';
 import { Accordion, Badge, Box, Group, Stack, Text, UnstyledButton, useMantineTheme, useMantineColorScheme } from '@mantine/core';
 import { IconChevronRight, IconPlus } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
-import { LEVEL1_CATEGORIES, normalizeCategoryName } from '@/utils/categoryColors';
 
 interface TagNode {
   id: string;
   name: string;
   level: number;
   parentId: string | null;
+  colorKey?: string | null;
+  iconName?: string | null;
+  description?: string | null;
   _count: {
     groups: number;
     events: number;
@@ -28,13 +30,6 @@ export default function TaxonomyTree({ tree, onSuggestTag }: TaxonomyTreeProps) 
   const { colorScheme } = useMantineColorScheme();
   const router = useRouter();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
-
-  // Get color for a Level 1 category
-  const getLevel1Color = (categoryName: string) => {
-    const normalized = normalizeCategoryName(categoryName);
-    const category = LEVEL1_CATEGORIES.find(cat => cat.value === normalized);
-    return category?.color || 'gray';
-  };
 
   // Handle tag click - navigate to filtered view
   const handleTagClick = (tag: TagNode) => {
@@ -166,7 +161,7 @@ export default function TaxonomyTree({ tree, onSuggestTag }: TaxonomyTreeProps) 
       radius="lg"
     >
       {tree.map(level1Tag => {
-        const colorName = getLevel1Color(level1Tag.name);
+        const colorName = level1Tag.colorKey || 'gray';
 
         return (
           <Accordion.Item

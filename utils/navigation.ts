@@ -1,4 +1,4 @@
-import { IconHome, IconCompass, IconUsers, IconCalendar, IconNews, IconCategory, IconSearch } from '@tabler/icons-react';
+import { IconUsers, IconCompass, IconCalendar, IconNews, IconCategory, IconSearch } from '@tabler/icons-react';
 
 export interface NavItem {
   key: string;
@@ -12,25 +12,17 @@ export interface NavItem {
 
 export const NAV_ITEMS: NavItem[] = [
   {
-    key: 'home',
-    label: 'Home',
-    href: '/',
-    icon: IconHome,
-    showInMobile: true,
-    showInDesktop: true,
-  },
-  {
     key: 'groups',
-    label: 'My Groups',
-    href: '/my-groups',
+    label: 'Groups',
+    href: '/',
     icon: IconUsers,
     showInMobile: true,
     showInDesktop: true,
   },
   {
-    key: 'events',
-    label: 'Events',
-    href: '/events',
+    key: 'activities',
+    label: 'Activities',
+    href: '/activities',
     icon: IconCalendar,
     showInMobile: true,
     showInDesktop: true,

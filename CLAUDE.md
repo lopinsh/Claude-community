@@ -179,10 +179,13 @@ Tags use many-to-many relationships via `TagsOnGroups` table.
 - Always use `theme.shadows.xl` for elevated state
 
 **Calendar Component:**
-- `EventCalendar` - Simplified list view of events (replaces react-lightweight-calendar)
-- Mobile uses `AgendaView` for better UX
-- Desktop shows events in a simple vertical list for now
-- Future: Can be enhanced with Mantine's @mantine/dates Calendar component
+- `LightweightCalendarWrapper` - Forked react-lightweight-calendar with dart-sass
+- **Location:** `components/calendar/lightweight/` (44 files)
+- **Views:** Month, Week, Week Timeline, Day
+- **Theming:** Integrated with Mantine theme and Coolors palette (uses `getEventColor()` from `theme.ts`)
+- **Dark Mode:** Full support via CSS custom properties in `lightweight-theme.scss`
+- **Mobile:** Mobile uses `AgendaView` for better UX via `useMediaQuery`
+- **Single Source of Truth:** Uses centralized config from `components/calendar/theme.ts`
 
 ### 7. API Routes (Next.js App Router)
 
@@ -313,13 +316,20 @@ export default function MyPage() {
 
 ### Calendar Implementation
 
-**Current:** Simplified list view (location: `components/events/EventCalendar.tsx`)
+**Single Source of Truth:** `LightweightCalendarWrapper` (components/calendar/LightweightCalendarWrapper.tsx)
 
-- Desktop: Events displayed in a vertical list
-- Mobile: AgendaView component for simplified list view
-- Uses Mantine components for consistency with theme
+- **Forked react-lightweight-calendar** with dart-sass (migrated from node-sass)
+- **Location:** `components/calendar/lightweight/` (44 files)
+- **Views:** Month, Week, Week Timeline, Day (CurrentView enum)
+- **Theming:** Integrated with Mantine theme via `getEventColor()` from theme.ts
+- **Dark Mode:** Full support via CSS custom properties in lightweight-theme.scss
+- **Wrapper Component:** `ActivityCalendar.tsx` wraps LightweightCalendarWrapper for backward compatibility
 
-**Note:** Removed `react-lightweight-calendar` due to deprecated node-sass dependency issues. Future enhancement can use Mantine's @mantine/dates Calendar component if needed.
+**Usage across app:**
+- `/calendar` page - uses LightweightCalendarWrapper directly
+- `/activities` page - uses ActivityCalendar wrapper
+- Group pages - uses ActivityCalendar wrapper
+- All instances share the same calendar implementation (no redundancy)
 
 ### Footer Component
 

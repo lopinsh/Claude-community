@@ -7,7 +7,6 @@ import '@mantine/notifications/styles.css';
 import { SessionProvider } from '@/components/SessionProvider';
 import { theme } from '@/theme';
 import { MobileLayout } from '@/components/mobile';
-import Footer from '@/components/layout/Footer';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -32,7 +31,6 @@ export default function RootLayout({
           <SessionProvider>
             <MobileLayout>
               {children}
-              <Footer />
             </MobileLayout>
           </SessionProvider>
         </MantineProvider>

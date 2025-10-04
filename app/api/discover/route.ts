@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 
-// GET /api/discover - Get groups and events for main page (public + user's private events)
+// GET /api/discover - Get groups and activities for main page (public + user's private activities)
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const level2 = searchParams.get('level2')
     const level3 = searchParams.get('level3')
     const location = searchParams.get('location')
-    const type = searchParams.get('type') // 'groups', 'events', or 'all'
+    const type = searchParams.get('type') // 'groups', 'activities', or 'all'
 
     // Build where conditions
     const whereConditions: any = {

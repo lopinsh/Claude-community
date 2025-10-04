@@ -88,23 +88,56 @@ model Session {
 model Tag {
   id         String    @id @default(cuid())
   name       String    @unique
-  parentId   String?
+  parentId   String?   // DEPRECATED - kept for backward compatibility
   level      Int       @default(1) // 1=broad categories, 2=specific types, 3=attributes
   group      TagGroup  @default(VERTICAL) // VERTICAL (hierarchical) or HORIZONTAL (attributes)
   usageCount Int       @default(0) // Track popularity for recommendations
   status     TagStatus @default(ACTIVE)
+
+  // Dynamic metadata (for L1 categories)
+  colorKey   String?   // Mantine color key (e.g., "categoryTeal") - L1 only
+  iconName   String?   // Icon name (e.g., "IconBrain") - L1 only
+  description String?  // Brief description (e.g., "Learn & Make") - optional
+
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  // Self-referential relationship for hierarchy
+  // Self-referential relationship for hierarchy (DEPRECATED - use TagParent)
   parent   Tag?  @relation("TagHierarchy", fields: [parentId], references: [id])
   children Tag[] @relation("TagHierarchy")
 
-  // Relationships with groups and events (removed legacy activities)
+  // Multi-parent relationships (NEW - replaces single parent)
+  childTagParents  TagParent[] @relation("ChildTags")  // When this tag is the child (L3)
+  parentTagParents TagParent[] @relation("ParentTags") // When this tag is the parent (L2/L1)
+
+  // Relationships with groups and events
   groups GroupTag[]
   events EventTag[] // Events can have specific tags
 
   @@map("tags")
+}
+
+// Many-to-many tag parent relationships (supports cross-category topics)
+model TagParent {
+  id        String   @id @default(cuid())
+  tagId     String   // FK to Tag (child - typically L3)
+  parentId  String   // FK to Tag (parent - typically L2)
+  isPrimary Boolean  @default(false) // Only one primary parent per child tag
+
+  // Denormalized for query performance
+  l1Category String // "Gathering & Fun"
+  l1ColorKey String // "categoryPeach"
+
+  tag    Tag @relation("ChildTags", fields: [tagId], references: [id], onDelete: Cascade)
+  parent Tag @relation("ParentTags", fields: [parentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([tagId, parentId])
+  @@index([tagId])
+  @@index([parentId])
+  @@index([isPrimary])
+  @@map("tag_parents")
 }
 
 // Tag suggestions from users (community-driven taxonomy growth)

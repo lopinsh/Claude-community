@@ -19,12 +19,10 @@ import {
   useMantineTheme,
   useMantineColorScheme
 } from '@mantine/core';
-import { IconPlus, IconUsers, IconCalendar, IconApps, IconList, IconSearch } from '@tabler/icons-react';
+import { IconPlus, IconUsers, IconSearch, IconCalendarEvent, IconUserPlus, IconSparkles, IconLayoutGrid, IconList } from '@tabler/icons-react';
 import GroupCard from '@/components/groups/GroupCard';
-import EventCard from '@/components/events/EventCard';
+import GroupCompactView from '@/components/groups/GroupCompactView';
 import CreateGroupModal from '@/components/groups/CreateGroupModal';
-// import EventCalendar from '@/components/events/EventCalendar'; // TODO: Install react-lightweight-calendar
-import EventDetailModal from '@/components/events/EventDetailModal';
 
 interface Group {
   id: string;
@@ -47,30 +45,8 @@ interface Group {
   _count: { applications: number; events: number };
 }
 
-interface PublicEvent {
-  id: string;
-  title: string | null;
-  description: string | null;
-  startDateTime: Date;
-  endDateTime: Date | null;
-  isAllDay: boolean;
-  eventType: string;
-  visibility: string;
-  requiresApproval: boolean;
-  maxMembers: number | null;
-  location: string | null;
-  group: {
-    id: string;
-    title: string;
-    location: string;
-    creator: { id: string; name: string | null };
-  };
-  _count: { attendees: number };
-}
-
 interface MainContentProps {
   groups: Group[];
-  publicEvents: PublicEvent[];
   loading: boolean;
   error: string | null;
   searchQuery: string;
@@ -80,20 +56,44 @@ interface MainContentProps {
 }
 
 
-export default function MainContent({ groups, publicEvents, loading, error, searchQuery, onSearchChange, onCreateGroup, onSearchClick }: MainContentProps) {
+export default function MainContent({ groups, loading, error, searchQuery, onSearchChange, onCreateGroup, onSearchClick }: MainContentProps) {
   const theme = useMantineTheme();
   const { colorScheme } = useMantineColorScheme();
   const { data: session } = useSession();
   const [createModalOpened, setCreateModalOpened] = useState(false);
-  const [activeTab, setActiveTab] = useState('all');
-  const [eventViewMode, setEventViewMode] = useState<'list' | 'calendar'>('list');
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-  const [eventDetailModalOpened, setEventDetailModalOpened] = useState(false);
 
-  const handleEventClick = (eventId: string) => {
-    setSelectedEventId(eventId);
-    setEventDetailModalOpened(true);
-  };
+  // View mode state with localStorage persistence
+  const [viewMode, setViewMode] = useState<'card' | 'compact'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('groups-view-mode');
+      return (saved === 'card' || saved === 'compact') ? saved : 'card';
+    }
+    return 'card';
+  });
+
+  // Save view mode to localStorage when it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('groups-view-mode', viewMode);
+    }
+  }, [viewMode]);
+
+  // Quick filters state
+  const [showHasEvents, setShowHasEvents] = useState(false);
+  const [showAcceptingMembers, setShowAcceptingMembers] = useState(false);
+  const [showNewGroups, setShowNewGroups] = useState(false);
+
+  // Filter groups based on quick filters
+  const filteredGroups = groups.filter(group => {
+    if (showHasEvents && group._count.events === 0) return false;
+    if (showAcceptingMembers && group.maxMembers && group._count.applications >= group.maxMembers) return false;
+    if (showNewGroups) {
+      const createdDate = new Date(group.createdAt);
+      const daysSinceCreation = (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
+      if (daysSinceCreation > 30) return false; // Show groups created in last 30 days
+    }
+    return true;
+  });
 
   if (loading) {
     return (
@@ -123,47 +123,53 @@ export default function MainContent({ groups, publicEvents, loading, error, sear
 
   return (
     <Box w="100%">
-      {/* Header with tabs, search, and view toggle */}
+      {/* Header with search */}
       <Stack gap="lg" mb="xl">
-        <Group justify="space-between" align="center" wrap="wrap" gap="md">
-          <Group gap={2} p={4} bg={colorScheme === 'dark' ? 'dark.6' : 'gray.1'} style={{ borderRadius: theme.radius.lg }}>
-            {[
-              { key: 'all', label: 'All', icon: IconApps, count: groups.length + publicEvents.length },
-              { key: 'groups', label: 'Groups', icon: IconUsers, count: groups.length },
-              { key: 'events', label: 'Events', icon: IconList, count: publicEvents.length }
-            ].map(({ key, label, icon: Icon, count }) => (
-              <Button
-                key={key}
-                onClick={() => setActiveTab(key)}
-                variant={activeTab === key ? (colorScheme === 'dark' ? 'light' : 'white') : 'subtle'}
-                color={activeTab === key ? 'categoryBlue' : 'gray'}
-                size="sm"
-                leftSection={<Icon size={16} />}
-                rightSection={count > 0 ? (
-                  <Badge
-                    size="xs"
-                    variant="filled"
-                    color={activeTab === key ? 'categoryPeach' : 'gray'}
-                    style={{ minWidth: '18px' }}
-                  >
-                    {count}
-                  </Badge>
-                ) : null}
-                fw={activeTab === key ? 600 : 500}
-                style={{
-                  boxShadow: activeTab === key ? theme.shadows.sm : 'none',
-                  transition: theme.other.transition
-                }}
-              >
-                {label}
-              </Button>
-            ))}
-          </Group>
+        {/* Quick Filters */}
+        <Group gap="xs">
+          <Button
+            variant={showHasEvents ? 'light' : 'subtle'}
+            color={showHasEvents ? 'categoryTeal' : 'gray'}
+            size="sm"
+            leftSection={<IconCalendarEvent size={16} />}
+            onClick={() => setShowHasEvents(!showHasEvents)}
+            style={{
+              transition: theme.other.transition
+            }}
+          >
+            Has Events
+          </Button>
+          <Button
+            variant={showAcceptingMembers ? 'light' : 'subtle'}
+            color={showAcceptingMembers ? 'categoryGreen' : 'gray'}
+            size="sm"
+            leftSection={<IconUserPlus size={16} />}
+            onClick={() => setShowAcceptingMembers(!showAcceptingMembers)}
+            style={{
+              transition: theme.other.transition
+            }}
+          >
+            Accepting Members
+          </Button>
+          <Button
+            variant={showNewGroups ? 'light' : 'subtle'}
+            color={showNewGroups ? 'categoryOrange' : 'gray'}
+            size="sm"
+            leftSection={<IconSparkles size={16} />}
+            onClick={() => setShowNewGroups(!showNewGroups)}
+            style={{
+              transition: theme.other.transition
+            }}
+          >
+            New Groups
+          </Button>
+        </Group>
 
-          {/* Search Bar - Moved here */}
+        <Group justify="space-between" align="center" wrap="wrap" gap="md">
+          {/* Search Bar */}
           <Box style={{ flex: 1, maxWidth: '400px' }}>
             <TextInput
-              placeholder="Search groups and events..."
+              placeholder="Search groups..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.currentTarget.value)}
               onFocus={onSearchClick ? () => onSearchClick() : undefined}
@@ -174,144 +180,68 @@ export default function MainContent({ groups, publicEvents, loading, error, sear
             />
           </Box>
 
-          {/* View Toggle for Events Tab */}
-          {activeTab === 'events' && (
-            <Group gap={2} p={2} bg={colorScheme === 'dark' ? 'dark.6' : 'gray.1'} style={{ borderRadius: theme.radius.md }}>
-              <Button
-                onClick={() => setEventViewMode('list')}
-                variant={eventViewMode === 'list' ? (colorScheme === 'dark' ? 'light' : 'white') : 'subtle'}
-                color={eventViewMode === 'list' ? 'categoryTeal' : 'gray'}
-                size="xs"
-                leftSection={<IconList size={14} />}
-                fw={500}
-                style={{
-                  boxShadow: eventViewMode === 'list' ? theme.shadows.xs : 'none',
-                  transition: theme.other.transition
-                }}
-              >
-                List
-              </Button>
-              <Button
-                onClick={() => setEventViewMode('calendar')}
-                variant={eventViewMode === 'calendar' ? (colorScheme === 'dark' ? 'light' : 'white') : 'subtle'}
-                color={eventViewMode === 'calendar' ? 'categoryTeal' : 'gray'}
-                size="xs"
-                leftSection={<IconCalendar size={14} />}
-                fw={500}
-                style={{
-                  boxShadow: eventViewMode === 'calendar' ? theme.shadows.xs : 'none',
-                  transition: theme.other.transition
-                }}
-              >
-                Calendar
-              </Button>
-            </Group>
-          )}
+          {/* View Mode Toggle */}
+          <Group gap={2} p={2} bg={colorScheme === 'dark' ? 'dark.6' : 'gray.1'} style={{ borderRadius: theme.radius.md }}>
+            <Button
+              onClick={() => setViewMode('card')}
+              variant={viewMode === 'card' ? (colorScheme === 'dark' ? 'light' : 'white') : 'subtle'}
+              color={viewMode === 'card' ? 'categoryBlue' : 'gray'}
+              size="sm"
+              leftSection={<IconLayoutGrid size={16} />}
+              fw={500}
+              style={{
+                boxShadow: viewMode === 'card' ? theme.shadows.xs : 'none',
+                transition: theme.other.transition
+              }}
+            >
+              Card
+            </Button>
+            <Button
+              onClick={() => setViewMode('compact')}
+              variant={viewMode === 'compact' ? (colorScheme === 'dark' ? 'light' : 'white') : 'subtle'}
+              color={viewMode === 'compact' ? 'categoryBlue' : 'gray'}
+              size="sm"
+              leftSection={<IconList size={16} />}
+              fw={500}
+              style={{
+                boxShadow: viewMode === 'compact' ? theme.shadows.xs : 'none',
+                transition: theme.other.transition
+              }}
+            >
+              Compact
+            </Button>
+          </Group>
         </Group>
       </Stack>
 
-      {/* Content Grid based on active tab */}
-      {activeTab === 'all' && (
-        <>
-          {groups.length === 0 && publicEvents.length === 0 ? (
-            <Center style={{ minHeight: 400 }}>
-              <Stack align="center" gap="md">
-                <Text size="lg" c="dimmed">No groups or events found</Text>
-                <Text size="sm" c="dimmed">Be the first to create a group!</Text>
-              </Stack>
-            </Center>
-          ) : (
-            <SimpleGrid
-              cols={{ base: 1, sm: 2, lg: 3 }}
-              spacing={{ base: 'md', lg: 'lg' }}
-              verticalSpacing={{ base: 'md', lg: 'lg' }}
-            >
-              {/* Show groups first */}
-              {groups.map((group) => (
-                <GroupCard key={`group-${group.id}`} group={group} />
-              ))}
-              {/* Then show public events */}
-              {publicEvents.map((event) => (
-                <EventCard key={`event-${event.id}`} event={event} />
-              ))}
-            </SimpleGrid>
-          )}
-        </>
+      {/* Content - Groups only */}
+      {filteredGroups.length === 0 ? (
+        <Center style={{ minHeight: 400 }}>
+          <Stack align="center" gap="md">
+            <Text size="lg" c="dimmed">No groups found</Text>
+            <Text size="sm" c="dimmed">
+              {groups.length === 0 ? 'Be the first to create a group!' : 'Try adjusting your filters'}
+            </Text>
+          </Stack>
+        </Center>
+      ) : viewMode === 'card' ? (
+        <SimpleGrid
+          cols={{ base: 1, sm: 2, lg: 3 }}
+          spacing={{ base: 'md', lg: 'lg' }}
+          verticalSpacing={{ base: 'md', lg: 'lg' }}
+        >
+          {filteredGroups.map((group) => (
+            <GroupCard key={group.id} group={group} />
+          ))}
+        </SimpleGrid>
+      ) : (
+        <GroupCompactView groups={filteredGroups} />
       )}
-
-      {activeTab === 'groups' && (
-        <>
-          {groups.length === 0 ? (
-            <Center style={{ minHeight: 400 }}>
-              <Stack align="center" gap="md">
-                <Text size="lg" c="dimmed">No groups found</Text>
-                <Text size="sm" c="dimmed">Create the first group in your community!</Text>
-              </Stack>
-            </Center>
-          ) : (
-            <SimpleGrid
-              cols={{ base: 1, sm: 2, lg: 3 }}
-              spacing={{ base: 'md', lg: 'lg' }}
-              verticalSpacing={{ base: 'md', lg: 'lg' }}
-            >
-              {groups.map((group) => (
-                <GroupCard key={group.id} group={group} />
-              ))}
-            </SimpleGrid>
-          )}
-        </>
-      )}
-
-      {activeTab === 'events' && (
-        <>
-          {publicEvents.length === 0 ? (
-            <Center style={{ minHeight: 400 }}>
-              <Stack align="center" gap="md">
-                <Text size="lg" c="dimmed">No public events found</Text>
-                <Text size="sm" c="dimmed">Join a group to see more events!</Text>
-              </Stack>
-            </Center>
-          ) : (
-            <>
-              {eventViewMode === 'list' ? (
-                <SimpleGrid
-                  cols={{ base: 1, sm: 2, lg: 3 }}
-                  spacing={{ base: 'md', lg: 'lg' }}
-                  verticalSpacing={{ base: 'md', lg: 'lg' }}
-                >
-                  {publicEvents.map((event) => (
-                    <EventCard key={event.id} event={event} />
-                  ))}
-                </SimpleGrid>
-              ) : (
-                <Paper p="xl" withBorder>
-                  <Stack align="center" gap="md">
-                    <Text size="lg" fw={500} c="dimmed">
-                      Calendar view temporarily disabled
-                    </Text>
-                    <Text size="sm" c="dimmed" ta="center">
-                      Please use list view for now
-                    </Text>
-                  </Stack>
-                </Paper>
-              )}
-            </>
-          )}
-        </>
-      )}
-
 
       {/* Create Group Modal */}
       <CreateGroupModal
         opened={createModalOpened}
         onClose={() => setCreateModalOpened(false)}
-      />
-
-      {/* Event Detail Modal */}
-      <EventDetailModal
-        opened={eventDetailModalOpened}
-        onClose={() => setEventDetailModalOpened(false)}
-        eventId={selectedEventId}
       />
     </Box>
   );

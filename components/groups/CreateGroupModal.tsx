@@ -23,6 +23,7 @@ import {
   useMantineColorScheme,
 } from '@mantine/core'
 import { useForm } from '@mantine/form'
+import { useDisclosure } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import {
   IconUsers,
@@ -35,6 +36,8 @@ import {
 } from '@tabler/icons-react'
 import { useRouter } from 'next/navigation'
 import { useMediaQuery } from '@mantine/hooks'
+import NaturalTagInput from './NaturalTagInput'
+import L2SelectionModal from './L2SelectionModal'
 
 const LATVIAN_CITIES = [
   { value: 'riga', label: 'Rīga' },
@@ -71,14 +74,22 @@ export default function CreateGroupModal({ opened, onClose, prefilledTagIds = []
   const [activeStep, setActiveStep] = useState(0)
   const [loading, setLoading] = useState(false)
 
-  // Tag management
-  const [level1Tags, setLevel1Tags] = useState<Array<{ value: string; label: string }>>([])
-  const [level2Tags, setLevel2Tags] = useState<Array<{ value: string; label: string }>>([])
-  const [level3Tags, setLevel3Tags] = useState<Array<{ value: string; label: string }>>([])
-  const [loadingTags, setLoadingTags] = useState({ level1: false, level2: false, level3: false })
+  // Tag management - simplified for new flow
+  const [selectedTags, setSelectedTags] = useState<Tag[]>([])
+  const [pendingTagSuggestions, setPendingTagSuggestions] = useState<Array<{
+    nameEn: string
+    l2TagId: string
+    l1Category: string
+    l1ColorKey: string
+  }>>([])
 
-  // Search states for custom tag creation
-  const [searchValues, setSearchValues] = useState({ level1: '', level2: '', level3: '' })
+  // Natural tag input state
+  const [tagInputValue, setTagInputValue] = useState('')
+  const [selectedTag, setSelectedTag] = useState<Tag | null>(null)
+
+  // L2 Selection Modal state
+  const [l2ModalOpened, l2ModalHandlers] = useDisclosure(false)
+  const [pendingTagName, setPendingTagName] = useState('')
 
   const form = useForm({
     initialValues: {
@@ -86,98 +97,105 @@ export default function CreateGroupModal({ opened, onClose, prefilledTagIds = []
       description: '',
       location: '',
       maxMembers: '',
-      level1TagIds: [] as string[],
-      level2TagIds: [] as string[],
-      level3TagIds: [] as string[],
     },
     validate: {
       title: (value) => !value.trim() ? 'Title is required' : null,
       location: (value) => !value.trim() ? 'Location is required' : null,
-      level1TagIds: (value) => value.length === 0 ? 'Please select at least one main category' : null,
     },
   })
 
-  // Fetch tags by level (many-to-many, no parent restrictions)
-  const fetchTags = async (level: number) => {
-    setLoadingTags(prev => ({ ...prev, [`level${level}`]: true }))
-    try {
-      const url = `/api/tags?level=${level}`
-      const response = await fetch(url)
-      if (response.ok) {
-        const data = await response.json()
-        const tagOptions = data.tags.map((tag: Tag) => ({
-          value: tag.id,
-          label: tag.name
-        }))
-
-        if (level === 1) setLevel1Tags(tagOptions)
-        else if (level === 2) setLevel2Tags(tagOptions)
-        else if (level === 3) setLevel3Tags(tagOptions)
-      }
-    } catch (error) {
-      console.error(`Failed to fetch level ${level} tags:`, error)
-    } finally {
-      setLoadingTags(prev => ({ ...prev, [`level${level}`]: false }))
+  // Handle tag selection from existing tags
+  const handleTagSelect = (tag: Tag | null) => {
+    setSelectedTag(tag)
+    if (tag && !selectedTags.some(t => t.id === tag.id)) {
+      setSelectedTags(prev => [...prev, tag])
+      setTagInputValue('')
     }
   }
 
-  // Load all tag levels independently when modal opens
-  useEffect(() => {
-    if (opened) {
-      fetchTags(1)
-      fetchTags(2)
-      fetchTags(3)
+  // Handle creating new tag - open L2 selection modal
+  const handleCreateNew = (searchTerm: string) => {
+    setPendingTagName(searchTerm)
+    l2ModalHandlers.open()
+  }
+
+  // Handle L2 selection - create tag suggestion
+  const handleL2Submit = async (l2TagId: string, l1Category: any) => {
+    try {
+      // Create tag suggestion
+      const response = await fetch('/api/tags/suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nameEn: pendingTagName,
+          nameLv: pendingTagName, // For now, use same name for both
+          level: 3,
+          parentTagIds: [l2TagId],
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to create tag suggestion')
+      }
+
+      const data = await response.json()
+
+      // Add to pending suggestions
+      setPendingTagSuggestions(prev => [
+        ...prev,
+        {
+          nameEn: pendingTagName,
+          l2TagId,
+          l1Category: l1Category.name,
+          l1ColorKey: l1Category.colorKey,
+        },
+      ])
+
+      notifications.show({
+        title: 'Tag suggestion submitted',
+        message: `"${pendingTagName}" will be reviewed by moderators`,
+        color: 'blue',
+      })
+
+      // Clear inputs and close modal
+      setTagInputValue('')
+      setPendingTagName('')
+      l2ModalHandlers.close()
+    } catch (error: any) {
+      console.error('Error creating tag suggestion:', error)
+      notifications.show({
+        title: 'Error',
+        message: error.message || 'Failed to create tag suggestion',
+        color: 'red',
+      })
     }
-  }, [opened])
+  }
 
-  // Pre-fill tags when provided from Interests page
-  useEffect(() => {
-    if (prefilledTagIds.length > 0 && opened) {
-      // Separate tags by level (would need to fetch tag details to know levels)
-      // For now, we'll just set them all - the API will handle categorization
-      const level1 = prefilledTagIds.filter(id => level1Tags.some(t => t.value === id))
-      const level2 = prefilledTagIds.filter(id => level2Tags.some(t => t.value === id))
-      const level3 = prefilledTagIds.filter(id => level3Tags.some(t => t.value === id))
+  // Handle tag removal
+  const handleRemoveTag = (tagId: string) => {
+    setSelectedTags(prev => prev.filter(t => t.id !== tagId))
+  }
 
-      if (level1.length > 0) form.setFieldValue('level1TagIds', level1)
-      if (level2.length > 0) form.setFieldValue('level2TagIds', level2)
-      if (level3.length > 0) form.setFieldValue('level3TagIds', level3)
-    }
-  }, [prefilledTagIds, opened, level1Tags, level2Tags, level3Tags])
-
-  // Handle custom tag creation
-  const handleCreateCustomTag = (level: number, query: string) => {
-    if (!query.trim()) return
-
-    const customTag = {
-      value: `custom_${Date.now()}_${query}`,
-      label: `${query} (pending approval)`
-    }
-
-    if (level === 1) {
-      setLevel1Tags(prev => [...prev, customTag])
-      form.setFieldValue('level1TagIds', [...form.values.level1TagIds, customTag.value])
-    } else if (level === 2) {
-      setLevel2Tags(prev => [...prev, customTag])
-      form.setFieldValue('level2TagIds', [...form.values.level2TagIds, customTag.value])
-    } else if (level === 3) {
-      setLevel3Tags(prev => [...prev, customTag])
-      form.setFieldValue('level3TagIds', [...form.values.level3TagIds, customTag.value])
-    }
-
-    // Clear search value
-    setSearchValues(prev => ({ ...prev, [`level${level}`]: '' }))
+  const handleRemovePendingTag = (index: number) => {
+    setPendingTagSuggestions(prev => prev.filter((_, i) => i !== index))
   }
 
   const handleSubmit = async (values: typeof form.values) => {
+    // Validation: require at least one tag (existing or pending)
+    if (selectedTags.length === 0 && pendingTagSuggestions.length === 0) {
+      notifications.show({
+        title: 'Validation Error',
+        message: 'Please add at least one tag to your group',
+        color: 'red',
+      })
+      return
+    }
+
     setLoading(true)
     try {
-      // Combine all selected tags, filtering out custom tags that don't exist in DB yet
-      const allTagIds = [
-        ...values.level1TagIds,
-        ...values.level2TagIds,
-        ...values.level3TagIds
-      ].filter(Boolean).filter(id => !id.startsWith('custom_'))
+      // Get tag IDs from selected existing tags
+      const tagIds = selectedTags.map(t => t.id)
 
       const groupResponse = await fetch('/api/groups', {
         method: 'POST',
@@ -187,8 +205,10 @@ export default function CreateGroupModal({ opened, onClose, prefilledTagIds = []
           description: values.description,
           location: values.location,
           maxMembers: values.maxMembers ? parseInt(values.maxMembers) : undefined,
-          groupType: 'RECURRING_GROUP', // Default since we removed the step
-          tagIds: allTagIds,
+          groupType: 'RECURRING_GROUP',
+          tagIds,
+          // Note: Pending tags are already created as suggestions in the database
+          // The group can still be created and will be linked once tags are approved
         }),
       })
 
@@ -198,9 +218,14 @@ export default function CreateGroupModal({ opened, onClose, prefilledTagIds = []
 
       const { group } = await groupResponse.json()
 
+      const pendingCount = pendingTagSuggestions.length
+      const successMessage = pendingCount > 0
+        ? `Group created! ${pendingCount} tag${pendingCount > 1 ? 's' : ''} pending moderator approval.`
+        : `Group "${values.title}" created successfully.`
+
       notifications.show({
         title: 'Success!',
-        message: `Group "${values.title}" created successfully.`,
+        message: successMessage,
         color: 'green',
       })
 
@@ -224,9 +249,11 @@ export default function CreateGroupModal({ opened, onClose, prefilledTagIds = []
   const handleClose = () => {
     form.reset()
     setActiveStep(0)
-    setLevel1Tags([])
-    setLevel2Tags([])
-    setLevel3Tags([])
+    setSelectedTags([])
+    setPendingTagSuggestions([])
+    setTagInputValue('')
+    setSelectedTag(null)
+    setPendingTagName('')
     onClose()
   }
 
@@ -298,85 +325,89 @@ export default function CreateGroupModal({ opened, onClose, prefilledTagIds = []
 
           {/* Step 2: Categories */}
           <Stepper.Step
-            label="Categories"
-            description="Tag your group"
+            label="Topics"
+            description="What's this about?"
             icon={<IconTags size={18} />}
           >
             <Stack gap="md" mt="md">
-              <Text c="dimmed" size="sm">Help people find your group with relevant categories</Text>
+              <Text c="dimmed" size="sm">
+                Describe what your group focuses on. Search for existing topics or create new ones.
+              </Text>
 
-              {/* Level 1: Global type */}
-              <div>
-                <Text size="sm" fw={500} mb="xs">1. Main Categories</Text>
-                <MultiSelect
-                  placeholder="Select or type main categories for your group"
-                  data={level1Tags}
-                  searchable
-                  disabled={loadingTags.level1}
-                  required
-                  description="What is the primary focus of your group? Type and press Enter to create custom tags"
-                  searchValue={searchValues.level1}
-                  onSearchChange={(value) => setSearchValues(prev => ({ ...prev, level1: value }))}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && searchValues.level1.trim()) {
-                      event.preventDefault()
-                      handleCreateCustomTag(1, searchValues.level1.trim())
-                    }
-                  }}
-                  {...form.getInputProps('level1TagIds')}
-                  rightSection={loadingTags.level1 ? <Loader size="xs" /> : null}
-                />
-              </div>
+              <NaturalTagInput
+                value={tagInputValue}
+                onChange={setTagInputValue}
+                onTagSelect={handleTagSelect}
+                onCreateNew={handleCreateNew}
+                placeholder="What's your group about? (e.g., 'Basketball', 'Urban Foraging', 'Book Club')"
+              />
 
-              {/* Level 2: Specific activity */}
-              <div>
-                <Text size="sm" fw={500} mb="xs">2. Specific Activities</Text>
-                <MultiSelect
-                  placeholder="Select or type specific activities"
-                  data={level2Tags}
-                  searchable
-                  clearable
-                  disabled={loadingTags.level2}
-                  description="What specific activities does your group focus on? Type and press Enter to create custom tags"
-                  searchValue={searchValues.level2}
-                  onSearchChange={(value) => setSearchValues(prev => ({ ...prev, level2: value }))}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && searchValues.level2.trim()) {
-                      event.preventDefault()
-                      handleCreateCustomTag(2, searchValues.level2.trim())
-                    }
-                  }}
-                  {...form.getInputProps('level2TagIds')}
-                  rightSection={loadingTags.level2 ? <Loader size="xs" /> : null}
-                />
-              </div>
+              {/* Selected Tags */}
+              {selectedTags.length > 0 && (
+                <Paper p="md" withBorder>
+                  <Text size="sm" fw={600} mb="xs">
+                    Selected Topics:
+                  </Text>
+                  <Group gap="xs">
+                    {selectedTags.map((tag) => (
+                      <Badge
+                        key={tag.id}
+                        variant="filled"
+                        color="blue"
+                        size="lg"
+                        rightSection={
+                          <ActionIcon
+                            size="xs"
+                            variant="transparent"
+                            onClick={() => handleRemoveTag(tag.id)}
+                          >
+                            <IconPlus size={12} style={{ transform: 'rotate(45deg)' }} />
+                          </ActionIcon>
+                        }
+                      >
+                        {tag.name}
+                      </Badge>
+                    ))}
+                  </Group>
+                </Paper>
+              )}
 
-              {/* Level 3: Nuances */}
-              <div>
-                <Text size="sm" fw={500} mb="xs">3. Additional Details</Text>
-                <MultiSelect
-                  placeholder="Select or type additional details"
-                  data={level3Tags}
-                  searchable
-                  clearable
-                  disabled={loadingTags.level3}
-                  description="Any specific style, skill level, or additional information? Type and press Enter to create custom tags"
-                  searchValue={searchValues.level3}
-                  onSearchChange={(value) => setSearchValues(prev => ({ ...prev, level3: value }))}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && searchValues.level3.trim()) {
-                      event.preventDefault()
-                      handleCreateCustomTag(3, searchValues.level3.trim())
-                    }
-                  }}
-                  {...form.getInputProps('level3TagIds')}
-                  rightSection={loadingTags.level3 ? <Loader size="xs" /> : null}
-                />
-              </div>
+              {/* Pending Tag Suggestions */}
+              {pendingTagSuggestions.length > 0 && (
+                <Paper p="md" withBorder style={{
+                  borderStyle: 'dashed',
+                  backgroundColor: colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0]
+                }}>
+                  <Text size="sm" fw={600} mb="xs">
+                    Pending Topics (awaiting approval):
+                  </Text>
+                  <Group gap="xs">
+                    {pendingTagSuggestions.map((suggestion, index) => (
+                      <Badge
+                        key={index}
+                        variant="light"
+                        color={suggestion.l1ColorKey}
+                        size="lg"
+                        rightSection={
+                          <ActionIcon
+                            size="xs"
+                            variant="transparent"
+                            onClick={() => handleRemovePendingTag(index)}
+                          >
+                            <IconPlus size={12} style={{ transform: 'rotate(45deg)' }} />
+                          </ActionIcon>
+                        }
+                      >
+                        {suggestion.nameEn} (pending)
+                      </Badge>
+                    ))}
+                  </Group>
+                </Paper>
+              )}
 
               <Alert icon={<IconInfoCircle size={16} />} variant="light" color="blue">
                 <Text size="sm">
-                  <strong>Tip:</strong> Type custom tags and press <kbd>Enter</kbd> to create them. Custom tags will be marked "pending approval" and need moderator review.
+                  <strong>Tip:</strong> Can't find your topic? Type it in and create a new one. New topics require moderator approval but your group will be visible immediately.
                 </Text>
               </Alert>
             </Stack>
@@ -425,38 +456,31 @@ export default function CreateGroupModal({ opened, onClose, prefilledTagIds = []
                     )}
                   </Group>
 
-                  {/* Show selected categories */}
-                  <Group ml={24} gap="xs" mt="xs">
-                    <ThemeIcon size="xs" variant="subtle" color="orange">
-                      <IconTags size={10} />
-                    </ThemeIcon>
-                    <Group gap="xs">
-                      {form.values.level1TagIds.map(tagId => {
-                        const tag = level1Tags.find(t => t.value === tagId)
-                        return tag ? (
-                          <Badge key={tagId} variant="filled" size="xs" color="blue">
-                            {tag.label}
+                  {/* Show selected and pending tags */}
+                  {(selectedTags.length > 0 || pendingTagSuggestions.length > 0) && (
+                    <Group ml={24} gap="xs" mt="xs">
+                      <ThemeIcon size="xs" variant="subtle" color="orange">
+                        <IconTags size={10} />
+                      </ThemeIcon>
+                      <Group gap="xs">
+                        {selectedTags.map((tag) => (
+                          <Badge key={tag.id} variant="filled" size="xs" color="blue">
+                            {tag.name}
                           </Badge>
-                        ) : null
-                      })}
-                      {form.values.level2TagIds.map(tagId => {
-                        const tag = level2Tags.find(t => t.value === tagId)
-                        return tag ? (
-                          <Badge key={tagId} variant="light" size="xs" color="cyan">
-                            {tag.label}
+                        ))}
+                        {pendingTagSuggestions.map((suggestion, index) => (
+                          <Badge
+                            key={index}
+                            variant="light"
+                            size="xs"
+                            color={suggestion.l1ColorKey}
+                          >
+                            {suggestion.nameEn} (pending)
                           </Badge>
-                        ) : null
-                      })}
-                      {form.values.level3TagIds.map(tagId => {
-                        const tag = level3Tags.find(t => t.value === tagId)
-                        return tag ? (
-                          <Badge key={tagId} variant="dot" size="xs" color="gray">
-                            {tag.label}
-                          </Badge>
-                        ) : null
-                      })}
+                        ))}
+                      </Group>
                     </Group>
-                  </Group>
+                  )}
                 </Stack>
               </Paper>
 
@@ -590,6 +614,14 @@ export default function CreateGroupModal({ opened, onClose, prefilledTagIds = []
           )}
         </div>
       </Stack>
+
+      {/* L2 Selection Modal */}
+      <L2SelectionModal
+        opened={l2ModalOpened}
+        onClose={l2ModalHandlers.close}
+        tagName={pendingTagName}
+        onSubmit={handleL2Submit}
+      />
     </Modal>
   )
 }

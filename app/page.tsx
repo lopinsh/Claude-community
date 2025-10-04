@@ -4,12 +4,11 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { Flex, Center, Loader, Stack, Text, Box, useMantineColorScheme, useMantineTheme } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
-import Header from '@/components/layout/Header';
+import MainLayout from '@/components/layout/MainLayout';
 import LeftSidebar from '@/components/dashboard/LeftSidebar';
 import MainContent from '@/components/dashboard/MainContent';
 import CreateGroupModal from '@/components/groups/CreateGroupModal';
-import { SwipeIndicator, FilterDrawer, SearchOverlay } from '@/components/mobile';
-import { useSwipeDrawer } from '@/hooks/useSwipeDrawer';
+import { FilterDrawer, SearchOverlay } from '@/components/mobile';
 
 export default function Home() {
   const { status } = useSession();
@@ -17,7 +16,6 @@ export default function Home() {
   const theme = useMantineTheme();
   const isMobile = useMediaQuery('(max-width: 768px)');
   const [groups, setGroups] = useState<any[]>([]);
-  const [publicEvents, setPublicEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,12 +35,8 @@ export default function Home() {
   // Sidebar collapse state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  // Mobile swipe drawer
-  const swipeDrawer = useSwipeDrawer({
-    onChange: (isOpen) => {
-      // Optional: Track drawer state changes
-    },
-  });
+  // Mobile sidebar drawer state
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -56,17 +50,16 @@ export default function Home() {
       if (selectedLevel3.length > 0) params.set('level3', selectedLevel3.join(','));
       if (selectedLocation) params.set('location', selectedLocation);
 
-      const discoverResponse = await fetch(`/api/discover?${params.toString()}`);
+      const groupsResponse = await fetch(`/api/groups?${params.toString()}`);
 
-      if (!discoverResponse.ok) {
-        const errorData = await discoverResponse.json();
-        throw new Error(errorData.error || 'Failed to fetch groups and events');
+      if (!groupsResponse.ok) {
+        const errorData = await groupsResponse.json();
+        throw new Error(errorData.error || 'Failed to fetch groups');
       }
 
-      const discoverData = await discoverResponse.json();
+      const groupsData = await groupsResponse.json();
 
-      setGroups(discoverData.groups || []);
-      setPublicEvents(discoverData.publicEvents || []);
+      setGroups(groupsData.groups || []);
     } catch (err: any) {
       console.error('Fetch data error:', err);
       setError(err.message || 'An unknown error occurred while loading data.');
@@ -96,75 +89,19 @@ export default function Home() {
   }
 
   return (
-    <>
-      <Box
-        style={{
-          minHeight: '100vh',
-          fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-        bg={colorScheme === 'dark' ? 'dark.6' : 'gray.0'}
-      >
-        <Header onBurgerClick={isMobile ? swipeDrawer.open : undefined} />
-
-        <Box style={{
-          display: isMobile ? 'flex' : 'grid',
-          flexDirection: isMobile ? 'column' : undefined,
-          gridTemplateColumns: isMobile ? undefined : (sidebarCollapsed ? '60px 1fr' : 'minmax(320px, 320px) 1fr'),
-          transition: 'grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          minHeight: 'calc(100vh - 72px)',
-          gap: 0,
-          flex: 1,
-        }}>
-          {/* Hide sidebar on mobile */}
-          {!isMobile && (
-            <LeftSidebar
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              selectedCategories={selectedCategories}
-              onCategoryChange={setSelectedCategories}
-              selectedLevel2={selectedLevel2}
-              onLevel2Change={setSelectedLevel2}
-              selectedLevel3={selectedLevel3}
-              onLevel3Change={setSelectedLevel3}
-              selectedLocation={selectedLocation}
-              onLocationChange={setSelectedLocation}
-              itemCount={groups.length + publicEvents.length}
-              totalMembers={totalMembers}
-              onCreateGroup={() => setCreateGroupModalOpened(true)}
-              isCollapsed={sidebarCollapsed}
-              onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-            />
-          )}
-
-          <Box
-            p={isMobile ? 'md' : 'clamp(24px, 4vw, 40px)'}
-            bg={colorScheme === 'dark' ? 'dark.8' : 'white'}
-            style={{
-              borderLeft: isMobile ? 'none' : `1px solid ${colorScheme === 'dark' ? theme.colors.dark[4] : theme.colors.gray[2]}`,
-              overflow: 'auto',
-              flex: 1,
-            }}
-          >
-            <MainContent
-              groups={groups}
-              publicEvents={publicEvents}
-              loading={loading}
-              error={error}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              onCreateGroup={() => setCreateGroupModalOpened(true)}
-              onSearchClick={isMobile ? () => setSearchOverlayOpened(true) : undefined}
-            />
-          </Box>
-        </Box>
-
-        {/* Mobile Filter Drawer */}
-        {isMobile && (
-          <FilterDrawer
-            opened={swipeDrawer.isOpen}
-            onClose={swipeDrawer.close}
+    <MainLayout onBurgerClick={isMobile ? () => setMobileSidebarOpen(true) : undefined}>
+      <Box style={{
+        display: isMobile ? 'flex' : 'grid',
+        flexDirection: isMobile ? 'column' : undefined,
+        gridTemplateColumns: isMobile ? undefined : (sidebarCollapsed ? '60px 1fr' : 'minmax(320px, 320px) 1fr'),
+        transition: 'grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        minHeight: 'calc(100vh - 72px)',
+        gap: 0,
+        flex: 1,
+      }}>
+        {/* Hide sidebar on mobile */}
+        {!isMobile && (
+          <LeftSidebar
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             selectedCategories={selectedCategories}
@@ -175,28 +112,67 @@ export default function Home() {
             onLevel3Change={setSelectedLevel3}
             selectedLocation={selectedLocation}
             onLocationChange={setSelectedLocation}
-            itemCount={groups.length + publicEvents.length}
+            itemCount={groups.length}
             totalMembers={totalMembers}
-            onCreateGroup={() => {
-              setCreateGroupModalOpened(true);
-              swipeDrawer.close();
-            }}
-            dragOffset={swipeDrawer.dragOffset}
+            onCreateGroup={() => setCreateGroupModalOpened(true)}
+            isCollapsed={sidebarCollapsed}
+            onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           />
         )}
 
-        {/* Swipe Indicator */}
-        {isMobile && <SwipeIndicator />}
-
-        {/* Search Overlay */}
-        <SearchOverlay opened={searchOverlayOpened} onClose={() => setSearchOverlayOpened(false)} />
-
-        {/* Create Group Modal */}
-        <CreateGroupModal
-          opened={createGroupModalOpened}
-          onClose={() => setCreateGroupModalOpened(false)}
-        />
+        <Box
+          p={isMobile ? 'md' : 'clamp(24px, 4vw, 40px)'}
+          bg={colorScheme === 'dark' ? 'dark.8' : 'white'}
+          style={{
+            borderLeft: isMobile ? 'none' : `1px solid ${colorScheme === 'dark' ? theme.colors.dark[4] : theme.colors.gray[2]}`,
+            overflow: 'auto',
+            flex: 1,
+          }}
+        >
+          <MainContent
+            groups={groups}
+            loading={loading}
+            error={error}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onCreateGroup={() => setCreateGroupModalOpened(true)}
+            onSearchClick={isMobile ? () => setSearchOverlayOpened(true) : undefined}
+          />
+        </Box>
       </Box>
-    </>
+
+      {/* Mobile Sidebar Drawer */}
+      {isMobile && (
+        <FilterDrawer
+          opened={mobileSidebarOpen}
+          onClose={() => setMobileSidebarOpen(false)}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          selectedCategories={selectedCategories}
+          onCategoryChange={setSelectedCategories}
+          selectedLevel2={selectedLevel2}
+          onLevel2Change={setSelectedLevel2}
+          selectedLevel3={selectedLevel3}
+          onLevel3Change={setSelectedLevel3}
+          selectedLocation={selectedLocation}
+          onLocationChange={setSelectedLocation}
+          itemCount={groups.length}
+          totalMembers={totalMembers}
+          onCreateGroup={() => {
+            setCreateGroupModalOpened(true);
+            setMobileSidebarOpen(false);
+          }}
+        />
+      )}
+
+      {/* Search Overlay */}
+      <SearchOverlay opened={searchOverlayOpened} onClose={() => setSearchOverlayOpened(false)} />
+
+      {/* Create Group Modal */}
+      <CreateGroupModal
+        opened={createGroupModalOpened}
+        onClose={() => setCreateGroupModalOpened(false)}
+      />
+    </MainLayout>
   );
 }

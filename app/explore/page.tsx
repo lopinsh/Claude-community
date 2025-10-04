@@ -8,7 +8,7 @@ import { useDisclosure } from '@mantine/hooks';
 import { IconCompass } from '@tabler/icons-react';
 import TaxonomyTree from '@/components/taxonomy/TaxonomyTree';
 import SuggestTagModal from '@/components/taxonomy/SuggestTagModal';
-import { MobileLayout } from '@/components/mobile';
+import MainLayout from '@/components/layout/MainLayout';
 
 interface TagNode {
   id: string;
@@ -70,81 +70,76 @@ export default function ExplorePage() {
     closeModal();
   };
 
-  const content = (
-    <Container size="xl" py={isMobile ? 'md' : 'xl'}>
-      <Stack gap="lg">
-        {/* Header */}
-        <Group justify="space-between" align="flex-start">
-          <div>
-            <Title order={isMobile ? 2 : 1} mb="xs">
-              Explore Interests
-            </Title>
-            <Text c="dimmed" size={isMobile ? 'sm' : 'md'}>
-              Browse our community's interest taxonomy and suggest new tags
-            </Text>
-          </div>
-
-          {session && !loading && (
-            <Button
-              variant="light"
-              color="categoryBlue"
-              onClick={() => openModal()}
-              size={isMobile ? 'sm' : 'md'}
-            >
-              Suggest Tag
-            </Button>
-          )}
-        </Group>
-
-        {/* Loading State */}
-        {loading && (
-          <Center h={400}>
-            <Loader size="lg" color="categoryBlue" />
-          </Center>
-        )}
-
-        {/* Taxonomy Tree */}
-        {!loading && tree.length > 0 && (
-          <TaxonomyTree
-            tree={tree}
-            onSuggestTag={session ? handleSuggestTag : undefined}
-          />
-        )}
-
-        {/* Empty State */}
-        {!loading && tree.length === 0 && (
-          <Center h={400}>
-            <Stack align="center" gap="md">
-              <IconCompass size={48} color="#999" />
-              <Text c="dimmed" size="lg">
-                No taxonomy data available
+  return (
+    <MainLayout>
+      <Container size="xl" py={isMobile ? 'md' : 'xl'}>
+        <Stack gap="lg">
+          {/* Header */}
+          <Group justify="space-between" align="flex-start">
+            <div>
+              <Title order={isMobile ? 2 : 1} mb="xs">
+                Explore Interests
+              </Title>
+              <Text c="dimmed" size={isMobile ? 'sm' : 'md'}>
+                Browse our community's interest taxonomy and suggest new tags
               </Text>
-            </Stack>
-          </Center>
-        )}
+            </div>
 
-        {/* Login Prompt */}
-        {!session && !loading && (
-          <Text size="sm" c="dimmed" ta="center" mt="xl">
-            Sign in to suggest new tags and help grow our community taxonomy
-          </Text>
-        )}
-      </Stack>
+            {session && !loading && (
+              <Button
+                variant="light"
+                color="categoryBlue"
+                onClick={() => openModal()}
+                size={isMobile ? 'sm' : 'md'}
+              >
+                Suggest Tag
+              </Button>
+            )}
+          </Group>
 
-      {/* Suggestion Modal */}
-      <SuggestTagModal
-        opened={modalOpened}
-        onClose={handleModalClose}
-        parentTag={selectedParentTag}
-        allLevel2Tags={allLevel2Tags}
-      />
-    </Container>
+          {/* Loading State */}
+          {loading && (
+            <Center h={400}>
+              <Loader size="lg" color="categoryBlue" />
+            </Center>
+          )}
+
+          {/* Taxonomy Tree */}
+          {!loading && tree.length > 0 && (
+            <TaxonomyTree
+              tree={tree}
+              onSuggestTag={session ? handleSuggestTag : undefined}
+            />
+          )}
+
+          {/* Empty State */}
+          {!loading && tree.length === 0 && (
+            <Center h={400}>
+              <Stack align="center" gap="md">
+                <IconCompass size={48} color="#999" />
+                <Text c="dimmed" size="lg">
+                  No taxonomy data available
+                </Text>
+              </Stack>
+            </Center>
+          )}
+
+          {/* Login Prompt */}
+          {!session && !loading && (
+            <Text size="sm" c="dimmed" ta="center" mt="xl">
+              Sign in to suggest new tags and help grow our community taxonomy
+            </Text>
+          )}
+        </Stack>
+
+        {/* Suggestion Modal */}
+        <SuggestTagModal
+          opened={modalOpened}
+          onClose={handleModalClose}
+          parentTag={selectedParentTag}
+          allLevel2Tags={allLevel2Tags}
+        />
+      </Container>
+    </MainLayout>
   );
-
-  // Wrap in MobileLayout if on mobile
-  if (isMobile) {
-    return <MobileLayout>{content}</MobileLayout>;
-  }
-
-  return content;
 }
