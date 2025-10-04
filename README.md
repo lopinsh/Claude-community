@@ -41,6 +41,8 @@ Navigate through our intuitive hierarchical tag system:
 - **Bottom Navigation** - 5-tab layout for easy thumb navigation
 - **Touch-optimized** forms with 44-48px touch targets
 - **SearchOverlay** - Full-screen hierarchical filtering
+- **Loading Skeletons** - Smooth loading states for better perceived performance
+- **Image Optimization** - Next.js Image with lazy loading and responsive sizes
 - **Dark Mode** - Full support with vibrant Coolors palette
 - **Responsive** - Seamless experience from phone to desktop
 
@@ -180,7 +182,8 @@ Each color has 10 shades [0-9] for light/dark mode variations.
 
 - **[CLAUDE.md](./CLAUDE.md)** - Development setup, architecture, and commands
 - **[PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md)** - Mission, features, and vision
-- **[MOBILE_FIRST_STATUS.md](./MOBILE_FIRST_STATUS.md)** - Mobile optimization progress
+- **[MOBILE_FIRST_STATUS.md](./MOBILE_FIRST_STATUS.md)** - Mobile optimization progress (75% complete)
+- **[STRATEGIC_BACKLOG.md](./STRATEGIC_BACKLOG.md)** - Future features and strategic planning
 - **[TYPOGRAPHY_GUIDE.md](./TYPOGRAPHY_GUIDE.md)** - Component usage patterns
 - **[ROLE_SYSTEM_IMPLEMENTATION.md](./ROLE_SYSTEM_IMPLEMENTATION.md)** - RBAC documentation
 
@@ -219,22 +222,45 @@ Tailored for Latvian community activities:
 - 3-level hierarchical tag system
 - Smart filtering with persistence
 - Notification system
-- Mobile-first responsive design
+- **Mobile-first responsive design (75% complete)**
+  - ✅ Bottom navigation & global layout
+  - ✅ Touch-optimized forms (44-48px targets)
+  - ✅ Full-screen modals on mobile
+  - ✅ Profile, Group Detail, Event Detail pages optimized
+  - ✅ Loading skeletons for better UX
+  - ✅ Image optimization with Next.js Image
+  - ✅ Responsive images with lazy loading
 - Role-based access control (RBAC)
 - Admin dashboard and moderation tools
 - Stories section for impact sharing
 
 ### 🚀 In Progress
-- Enhanced mobile optimizations (Phases 5-8)
+- **Performance optimization** (Lighthouse audit, code splitting)
+- **Calendar enhancements** (touch-friendly controls, swipe gestures)
 - Advanced search capabilities
 - Email notifications
 - Group messaging system
 
 ### 📋 Roadmap
+
+#### Short-term (Next Sprint)
+- Complete mobile-first Phase 6-7 (Calendar, Notifications, Performance)
+- Date range filtering for Activities page
+- Group count display in Explore page
+- Role-based views (member/visitor/moderator)
+
+#### Medium-term
 - **Phase 1**: Location-based recommendations
 - **Phase 2**: Business monetization (premium listings)
 - **Phase 3**: Advanced analytics and insights
 - **Phase 4**: Latvian language support
+
+#### Long-term
+- Progressive Web App (PWA) features
+- Offline support
+- Push notifications
+
+For detailed mobile optimization progress, see [MOBILE_FIRST_STATUS.md](./MOBILE_FIRST_STATUS.md).
 
 ## 🤝 Contributing
 
