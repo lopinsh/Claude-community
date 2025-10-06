@@ -5,9 +5,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Quick Reference
 
 **For comprehensive context, see:**
+- **`SESSION_HANDOFF.md`**: 🔥 **START HERE** - Current session status, completed work, and prioritized next steps (Updated October 6, 2025 with actual implementation status)
 - **`PROJECT_CONTEXT.md`**: Mission, features, tech stack, and current status
-- **`MOBILE_FIRST_STATUS.md`**: Mobile optimization progress and remaining tasks
 - **`TYPOGRAPHY_GUIDE.md`**: Typography and component usage patterns
+- **`STRATEGIC_BACKLOG.md`**: All planned features and enhancements
+- **`docs/role-based-views.md`**: Documentation for role-based group views feature
 
 ## Project Overview
 
@@ -97,6 +99,26 @@ Six Level 1 categories, each mapped to a color from the Coolors palette:
 
 Tags use many-to-many relationships via `TagsOnGroups` table.
 
+**Tag Data Flow (Single Source of Truth):**
+```typescript
+// All components use the centralized store
+const { fetchTree, getLevel2Tags, getLevel3Tags } = useTagTreeStore();
+
+// Fetch once on mount
+useEffect(() => { fetchTree(); }, [fetchTree]);
+
+// Get filtered tags with counts
+const level2Tags = getLevel2Tags(selectedCategories);
+// Each tag includes: { id, name, _count: { groups, events }, children }
+```
+
+**Count Display Pattern:**
+```typescript
+<Badge size="xs" variant="light" color="gray">
+  {tag._count.groups + tag._count.events}
+</Badge>
+```
+
 ### 3. Authentication & Authorization (NextAuth.js v4)
 
 **Location:** `app/api/auth/[...nextauth]/route.ts`, `lib/auth.ts`
@@ -148,6 +170,13 @@ Tags use many-to-many relationships via `TagsOnGroups` table.
 
 **Zustand Stores:**
 - `useBreadcrumbStore` - Custom breadcrumb navigation (location: `hooks/useBreadcrumbs.ts`)
+- `useTagTreeStore` - Centralized tag hierarchy with counts (location: `hooks/useTagTreeStore.ts`)
+  - **Single source of truth** for all tag data (Level 1/2/3)
+  - Fetches `/api/tags/tree` once per session
+  - Provides selectors: `getLevel1Tags()`, `getLevel2Tags(level1Ids)`, `getLevel3Tags(level2Ids)`
+  - Includes group/event counts for all tags
+  - Used by: LeftSidebar, SearchOverlay, Explore page
+- `useFilterStore` - Filter selections with localStorage persistence (location: `hooks/useFilterStore.ts`)
 
 **Mantine Hooks:**
 - `useMantineColorScheme()` - Theme toggle (light/dark)

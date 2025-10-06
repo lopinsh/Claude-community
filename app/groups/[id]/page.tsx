@@ -35,6 +35,8 @@ import {
 import { useSession } from 'next-auth/react'
 import MainLayout from '@/components/layout/MainLayout'
 import GroupDetailSidebar from '@/components/sidebars/GroupDetailSidebar'
+import GroupActionsSidebar from '@/components/groups/GroupActionsSidebar'
+import GroupMobileMenu from '@/components/groups/GroupMobileMenu'
 import CreateActivityModal from '@/components/activities/CreateActivityModal'
 import ActivityCalendar from '@/components/calendar/ActivityCalendar'
 import ActivityDetailModal from '@/components/activities/ActivityDetailModal'
@@ -67,10 +69,23 @@ interface Group {
     eventType: string
     visibility: string
   }>
+  applications: Array<{
+    id: string
+    userId: string
+    status: string // 'pending', 'accepted', 'rejected'
+    createdAt: string
+    user: {
+      id: string
+      name: string | null
+      email: string
+    }
+  }>
   _count: {
     applications: number
     events: number
   }
+  userApplicationStatus: string | null // 'pending', 'accepted', 'rejected', or null if not applied
+  userRole: 'visitor' | 'member' | 'owner' | 'moderator'
 }
 
 export default function GroupDetailPage() {
@@ -194,12 +209,18 @@ export default function GroupDetailPage() {
   return (
     <MainLayout>
       <Box style={{ display: 'flex' }}>
-        {!isMobile && (
-          <GroupDetailSidebar
+        {!isMobile && group && (
+          <GroupActionsSidebar
             group={group}
-            currentUserId={session?.user?.id}
-            isCollapsed={sidebarCollapsed}
-            onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+            userRole={group.userRole}
+            onEdit={() => setCreateEventModalOpened(true)}
+            onCreateEvent={() => setCreateEventModalOpened(true)}
+            onManageMembers={() => {}}
+            onJoin={() => {}}
+            onLeave={() => {}}
+            onReport={() => {}}
+            onApply={() => {}}
+            onApprove={() => {}}
           />
         )}
 
@@ -454,40 +475,28 @@ export default function GroupDetailPage() {
             </Stack>
           </Paper>
 
-          {/* Mobile Sticky Action Button */}
-          {isMobile && (
+          {/* Mobile Action Menu */}
+          {isMobile && group && (
             <Box
               style={{
                 position: 'fixed',
                 bottom: 70,
-                left: 0,
-                right: 0,
-                padding: '16px',
-                backgroundColor: colorScheme === 'dark' ? theme.colors.dark[7] : theme.white,
-                borderTop: `1px solid ${colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors.gray[3]}`,
+                right: 16,
                 zIndex: 100,
               }}
             >
-              {isOwner ? (
-                <Button
-                  fullWidth
-                  size="lg"
-                  leftSection={<IconPlus size={20} />}
-                  onClick={() => setCreateEventModalOpened(true)}
-                  style={{ minHeight: '48px' }}
-                >
-                  Create Event
-                </Button>
-              ) : (
-                <Button
-                  fullWidth
-                  size="lg"
-                  disabled
-                  style={{ minHeight: '48px' }}
-                >
-                  Join Group
-                </Button>
-              )}
+              <GroupMobileMenu
+                group={group}
+                userRole={group.userRole}
+                onEdit={() => setCreateEventModalOpened(true)}
+                onCreateEvent={() => setCreateEventModalOpened(true)}
+                onManageMembers={() => {}}
+                onJoin={() => {}}
+                onLeave={() => {}}
+                onReport={() => {}}
+                onApply={() => {}}
+                onApprove={() => {}}
+              />
             </Box>
           )}
 

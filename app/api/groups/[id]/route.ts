@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { z } from 'zod'
+import { isModerator } from '@/lib/authorization'
+import { UserRole } from '@prisma/client'
+import { Session } from 'next-auth'
 
 const updateGroupSchema = z.object({
   title: z.string().min(1).optional(),
@@ -12,12 +15,36 @@ const updateGroupSchema = z.object({
   isActive: z.boolean().optional(),
 })
 
+/**
+ * Helper function to determine the user's role within a group
+ */
+function determineUserRole(group: any, userId: string | undefined, session: Session | null): 'visitor' | 'member' | 'owner' | 'moderator' {
+  // If user is not logged in, they are a visitor
+  if (!userId) return 'visitor';
+  
+  // Check if user is a moderator/admin (system-wide role)
+  if (session && isModerator(session)) return 'moderator';
+  
+  // Check if user is the group owner
+  if (group.creator.id === userId) return 'owner';
+  
+  // Check if user is a member (has approved application)
+  const userApplication = group.applications.find(
+    (app: any) => app.userId === userId && app.status === 'accepted'
+  );
+  
+  return userApplication ? 'member' : 'visitor';
+}
+
 // GET /api/groups/[id] - Get group by ID
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.id;
+
     const group = await prisma.group.findUnique({
       where: { id: params.id },
       include: {
@@ -72,7 +99,19 @@ export async function GET(
       return NextResponse.json({ error: 'Group not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ group })
+    // If user is logged in, add their application status to the response
+    const userApplication = userId 
+      ? group.applications.find(app => app.userId === userId)
+      : null;
+
+    // Add user role information to the group response
+    const groupWithUserRole = {
+      ...group,
+      userApplicationStatus: userApplication?.status || null,
+      userRole: determineUserRole(group, userId, session)
+    };
+
+    return NextResponse.json({ group: groupWithUserRole })
 
   } catch (error) {
     console.error('Group fetch error:', error)

@@ -2,6 +2,22 @@
 
 This document tracks strategic improvements and feature ideas for future development sessions.
 
+## Completed Features
+
+### Mobile-First Design Implementation
+- **Phase 1-5 Completed:** Foundation, component adaptation, global layout, forms & input optimization, and detail pages
+- **Features Implemented:**
+  - AgendaView for react-big-calendar (mobile-optimized event list)
+  - Bottom Navigation component (5 tabs: Discover, Interests, My Groups, News, Profile)
+  - MobileLayout wrapper (provides bottom padding for navigation)
+  - Swipe Indicator component (visual affordance for drawer)
+  - useSwipeDrawer hook (gesture-based interactions)
+  - SearchOverlay with hierarchical category filtering
+  - FilterDrawer (mobile version of LeftSidebar)
+  - Mobile-optimized forms (48px touch targets, full-screen modals on mobile)
+  - Group/Event detail page optimizations
+  - Loading skeletons and image optimization
+
 ## Priority: High
 
 ### 1. Activities Page - Date Range Filtering
@@ -55,47 +71,48 @@ Movement & Wellness (45 groups)
 ---
 
 ### 4. Group Pages - Role-Based Views
-**Status:** Planned
-**Description:** Implement distinct views for different user roles: member, visitor, moderator/owner.
+**Status:** COMPLETED
+**Description:** Implemented distinct views for different user roles: member, visitor, moderator/owner.
 
-**Current Implementation:**
-- Single view with `isOwner` check for some buttons
-
-**Proposed Changes:**
+**Implementation Details:**
+- Created `GroupActionsSidebar` component for desktop with role-based actions
+- Created `GroupMobileMenu` component for mobile with role-based actions (three-dot menu pattern)
+- Updated API to return user role in each group context
+- Added `userRole` field with values: 'visitor', 'member', 'owner', 'moderator'
+- Added `userApplicationStatus` field to track join request status
 
 #### Visitor View (Not a member)
-- Show group info, upcoming events (public only)
-- Prominent "Join Group" button
-- Hide member-only content
-- Show limited event details
+- See group info, upcoming events (public only)
+- See "Join Group" (for public groups) or "Request to Join" (for private groups) button
+- See "Report" option
+- Hidden member-only content
 
 #### Member View (Joined group)
-- Show all group content
-- Access to member-only events
-- Leave Group button
-- RSVP to events
-- View other members
+- See all group content
+- See all group events
+- See "Leave Group" button
+- See "Report" option
 
-#### Moderator/Owner View
-- All member view features
-- Edit Group button (opens edit modal)
-- Create Event button
-- Manage members (approve/remove)
-- Delete events
-- Group settings
+#### Owner View
+- See all member view features
+- See "Edit Group" button
+- See "Create Event" button
+- See "Manage Members" button
+- See "Manage Applications" button
+- See "Leave Group" button (to leave group)
+- See "Report" option
 
-**Sidebar Actions:**
-- Move role-specific actions to sidebar (not inline)
-- Desktop: ContextualSidebar on right
-- Mobile: Bottom sheet or action menu (three dots)
+#### Moderator View
+- See all owner view features
+- Can manage any group regardless of ownership
+- Have additional system-level responsibilities
 
-**Tasks:**
-- [ ] Create `GroupActionsSidebar` component
-- [ ] Implement role-based action visibility
-- [ ] Move "Edit Group", "Create Event", "Manage Members" to sidebar
-- [ ] Add "Leave Group" action for members
-- [ ] Add "Report Group" action for visitors
-- [ ] Mobile: Three-dot menu in header → opens bottom sheet with actions
+**Files Updated:**
+- `components/groups/GroupActionsSidebar.tsx` - Desktop sidebar with role-based actions
+- `components/groups/GroupMobileMenu.tsx` - Mobile menu with role-based actions
+- `app/api/groups/[id]/route.ts` - Updated to return user role information
+- `app/groups/[id]/page.tsx` - Updated to use role-based rendering
+- `docs/role-based-views.md` - New documentation file
 
 ---
 
