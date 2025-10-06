@@ -10,50 +10,19 @@
 
 ## 🌟 Mission
 
-Create a portal for connecting like-minded people through **in-person groups and events**, focusing on building genuine friendships and community connections. Whether you're looking for a workout partner, want to join a folk dancing group, or planning a community picnic, Ejam Kopā helps you find your people.
-
-**Not a dating app** - We're all about platonic connections, shared hobbies, and building strong local communities.
+Create a portal for connecting like-minded people through **in-person groups and events**, focusing on building genuine friendships and community connections. Whether you're looking for a workout partner, want to join a folk dancing group, or planning a community picnic, Ejam Kopā helps you find your people, form connections through activties, shared hobbies, and building strong local communities.
 
 ## ✨ Key Features
 
 ### 🎯 Smart Discovery with 3-Level Categorization
 Navigate through our intuitive hierarchical tag system:
-- **Level 1**: 6 broad categories (Skill & Craft, Movement & Wellness, Gathering & Fun, etc.)
+- **Level 1**: 6 broad categories (Community & Society, Gathering & Fun, Movement & Wellness, Performance & Spectacle, Practical & Resource, Skill & Craft.)
 - **Level 2**: Domains (Team Sports, Visual Arts, Social Meetups)
 - **Level 3**: Specific interests (Basketball, Folk Dancing, Yoga)
-
-**Smart Filtering**: Select filters on Groups page → automatically applies to Activities page for seamless exploration.
-
-### 👥 Group Management
-- Create **PUBLIC**, **PRIVATE**, or **SINGLE_EVENT** groups
-- Application system with approval workflow
-- Member management and activity tracking
-- Rich group profiles with tags and location
-
-### 📅 Event System
-- Create events with full calendar integration
-- RSVP tracking and attendance management
-- Multiple calendar views (Month, Week, Day, Agenda)
-- **Smart event filtering** by category, location, and tags
-- Dynamic hour ranges for late-night events
-
-### 🎨 Beautiful Mobile-First Design
-- **Bottom Navigation** - 5-tab layout for easy thumb navigation
-- **Touch-optimized** forms with 44-48px touch targets
-- **SearchOverlay** - Full-screen hierarchical filtering
-- **Loading Skeletons** - Smooth loading states for better perceived performance
-- **Image Optimization** - Next.js Image with lazy loading and responsive sizes
-- **Dark Mode** - Full support with vibrant Coolors palette
-- **Responsive** - Seamless experience from phone to desktop
 
 ### ✨ Stories (Impact Sharing)
 Share positive community impact and inspiring stories. Celebrates the difference our community makes together.
 
-### 🔐 Role-Based Access Control
-- **USER** - Create groups, join activities
-- **MODERATOR** - Approve tags, manage content
-- **COMPANY** - Premium features (coming soon)
-- **ADMIN** - Full platform control
 
 ## 🚀 Tech Stack
 
@@ -75,117 +44,6 @@ Share positive community impact and inspiring stories. Celebrates the difference
 - **Deployment**: Docker Compose with hot-reload
 - **Development**: Hot module replacement, auto-migrations
 
-## 📦 Quick Start
-
-### Prerequisites
-- Docker and Docker Compose
-- Node.js 18+ (for local development)
-- Git
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/lopinsh/Claude-community.git
-   cd Claude-community
-   ```
-
-2. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   ```
-   Edit `.env` and configure:
-   - `DATABASE_URL`
-   - `NEXTAUTH_SECRET`
-   - `NEXTAUTH_URL`
-
-3. **Start with Docker** (Recommended)
-   ```bash
-   docker-compose up
-   ```
-   This automatically:
-   - Starts PostgreSQL database
-   - Runs database migrations
-   - Seeds initial data
-   - Starts Next.js dev server on http://localhost:3000
-
-4. **Access the application**
-   - **App**: http://localhost:3000
-   - **Prisma Studio**: http://localhost:5555 (run `npm run db:studio`)
-
-### Test Credentials
-- **Email**: `test@example.com`
-- **Password**: `password123`
-
-- **Admin Email**: `ofeldmanis@gmail.com`
-- **Admin Password**: `123456`
-
-## 🛠️ Development
-
-### Docker Commands
-```bash
-# Start the entire stack
-docker-compose up
-
-# Restart app after package.json changes
-docker-compose restart app
-
-# View logs
-docker-compose logs app --tail=100 --follow
-
-# Stop all containers
-docker-compose down
-
-# Access Prisma Studio (database GUI)
-npm run db:studio
-```
-
-### Database Operations
-```bash
-# Create a new migration
-docker-compose exec app npx prisma migrate dev --name your_migration_name
-
-# Generate Prisma client
-docker-compose exec app npx prisma generate
-
-# Seed the database
-npm run db:seed
-
-# Reset database (WARNING: destroys all data)
-docker-compose exec app npx prisma migrate reset
-```
-
-### Local Development (Non-Docker)
-```bash
-npm install
-npm run dev          # Start Next.js dev server
-npm run build        # Build for production
-npm run lint         # Run ESLint
-```
-
-## 🎨 Color System
-
-We use a vibrant **Coolors palette** for our category system:
-
-- **categoryRed** (#F94144) - Alerts & Important Actions
-- **categoryOrange** (#F3722C) - Civic & Governance
-- **categoryPeach** (#F9844A) - Gathering & Fun
-- **categoryYellow** (#F9C74F) - Practical & Resource
-- **categoryGreen** (#90BE6D) - Movement & Wellness
-- **categoryTeal** (#43AA8B) - Skill & Craft
-- **categoryBlue** (#577590) - Performance & Spectacle
-- **categoryDarkBlue** (#277DA1) - Accents
-
-Each color has 10 shades [0-9] for light/dark mode variations.
-
-## 📚 Documentation
-
-- **[CLAUDE.md](./CLAUDE.md)** - Development setup, architecture, and commands
-- **[PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md)** - Mission, features, and vision
-- **[MOBILE_FIRST_STATUS.md](./MOBILE_FIRST_STATUS.md)** - Mobile optimization progress (75% complete)
-- **[STRATEGIC_BACKLOG.md](./STRATEGIC_BACKLOG.md)** - Future features and strategic planning
-- **[TYPOGRAPHY_GUIDE.md](./TYPOGRAPHY_GUIDE.md)** - Component usage patterns
-- **[ROLE_SYSTEM_IMPLEMENTATION.md](./ROLE_SYSTEM_IMPLEMENTATION.md)** - RBAC documentation
 
 ## 🌍 Regional Focus
 
@@ -234,13 +92,6 @@ Tailored for Latvian community activities:
 - Admin dashboard and moderation tools
 - Stories section for impact sharing
 
-### 🚀 In Progress
-- **Performance optimization** (Lighthouse audit, code splitting)
-- **Calendar enhancements** (touch-friendly controls, swipe gestures)
-- Advanced search capabilities
-- Email notifications
-- Group messaging system
-
 ### 📋 Roadmap
 
 #### Short-term (Next Sprint)
@@ -254,13 +105,6 @@ Tailored for Latvian community activities:
 - **Phase 2**: Business monetization (premium listings)
 - **Phase 3**: Advanced analytics and insights
 - **Phase 4**: Latvian language support
-
-#### Long-term
-- Progressive Web App (PWA) features
-- Offline support
-- Push notifications
-
-For detailed mobile optimization progress, see [MOBILE_FIRST_STATUS.md](./MOBILE_FIRST_STATUS.md).
 
 ## 🤝 Contributing
 
